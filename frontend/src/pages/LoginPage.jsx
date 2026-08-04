@@ -1,6 +1,5 @@
 import '../styles/auth/AuthPage.css'
 import { Link } from 'react-router-dom'
-import MetaMaskConnectButton from '../components/metaMaskConnectButton.jsx'
 import { useLoginForm } from '../hooks/useLoginForm'
 
 function EyeIcon() {
