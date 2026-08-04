@@ -8,4 +8,6 @@ const axiosClient = axios.create({
   },
 });
 
+export const registerUser = () => axiosClient.get('/register');
+
 export default axiosClient;
