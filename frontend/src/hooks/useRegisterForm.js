@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { registerUser} from '../services/axiosClient'
 
 export function useRegisterForm() {
   const navigate = useNavigate()
@@ -73,6 +74,7 @@ export function useRegisterForm() {
 
     setLoading(true)
     try {
+
       const res = await registerUser({
         fullName: formData.fullName,
         email: formData.email,
