@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { registerUser} from '../services/axiosClient'
+import { registerUser } from '../services/axiosClient'
 
 export function useRegisterForm() {
   const navigate = useNavigate()
@@ -81,8 +81,19 @@ export function useRegisterForm() {
         password: formData.password,
         role: formData.role,
       })
-      localStorage.setItem('token', res.data.token)
-      navigate('/dashboard')
+      const { token, user } = res.data
+
+      // Store authentication data
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('role', user.role)
+
+      // Redirect based on role
+      if (user.role === 'shipper') {
+        navigate('/shipperdashboard')
+      } else {
+        navigate('/carrierdashboard')
+      }
     } catch (err) {
       setSubmitError(err.response?.data?.error || 'Registration failed. Please try again.')
     } finally {

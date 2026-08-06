@@ -51,8 +51,17 @@ export function useLoginForm() {
         email: formData.email,
         password: formData.password,
       })
-      localStorage.setItem('token', res.token)
-      navigate('/dashboard')
+
+      const { token, user } = res.data
+
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
+
+      if (user.role === 'shipper') {
+        navigate('/shipperdashboard')
+      } else {
+        navigate('/carrierdashboard')
+      }
     } catch (err) {
       setSubmitError(err.response?.data?.message || 'Login failed. Please check your credentials.')
     } finally {
