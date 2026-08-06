@@ -1,0 +1,447 @@
+/* ==========================================================================
+   VeriCargo — Main Design System
+   Extends the auth page's dark violet aesthetic across the whole app.
+   ========================================================================== */
+
+:root {
+    /* Core palette — same family as AuthPage, expanded for app-wide use */
+    --page-bg: radial-gradient(circle at top, #4c1d95 0, #1b102f 44%, #090816 100%);
+    --surface-0: #090816;
+    --surface-1: rgba(18, 12, 36, 0.72);
+    --surface-2: rgba(255, 255, 255, 0.05);
+    --surface-3: rgba(255, 255, 255, 0.08);
+    --card-border: rgba(202, 179, 255, 0.18);
+    --card-shadow: 0 28px 80px rgba(18, 9, 45, 0.45);
+
+    --text-main: #f5efff;
+    --text-muted: #d4c7ef;
+    --text-soft: rgba(245, 239, 255, 0.72);
+    --text-faint: rgba(245, 239, 255, 0.48);
+
+    --accent: #b46cff;
+    --accent-strong: #8f35ff;
+    --accent-soft: rgba(180, 108, 255, 0.15);
+
+    /* Status colors — used for shipment states */
+    --status-transit: #5da8ff;
+    --status-transit-bg: rgba(93, 168, 255, 0.14);
+    --status-delivered: #4ade9a;
+    --status-delivered-bg: rgba(74, 222, 154, 0.14);
+    --status-pending: #ffcd6c;
+    --status-pending-bg: rgba(255, 205, 108, 0.14);
+    --status-issue: #ff8080;
+    --status-issue-bg: rgba(255, 128, 128, 0.14);
+
+    --radius-sm: 12px;
+    --radius-md: 18px;
+    --radius-lg: 28px;
+
+    --sidebar-w: 264px;
+    --sidebar-w-collapsed: 84px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    background: var(--page-bg);
+    background-attachment: fixed;
+    color: var(--text-main);
+}
+
+/* ==========================================================================
+   App shell — sidebar + main content
+   ========================================================================== */
+
+.app-shell {
+    position: relative;
+    display: flex;
+    min-height: 100svh;
+    isolation: isolate;
+    overflow-x: hidden;
+}
+
+.app-shell::before,
+.app-shell::after {
+    content: '';
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(12px);
+    z-index: -1;
+}
+
+.app-shell::before {
+    top: -120px;
+    right: -90px;
+    width: 320px;
+    height: 320px;
+    background: rgba(180, 108, 255, 0.22);
+}
+
+.app-shell::after {
+    left: -100px;
+    bottom: -110px;
+    width: 300px;
+    height: 300px;
+    background: rgba(143, 53, 255, 0.16);
+}
+
+/* ==========================================================================
+   Sidebar
+   ========================================================================== */
+
+.sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 24px 18px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px);
+    transition: width 200ms ease;
+}
+
+.sidebar--collapsed {
+    width: var(--sidebar-w-collapsed);
+}
+
+.sidebar__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 8px;
+}
+
+.sidebar__brand-mark {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(143, 53, 255, 0.35);
+}
+
+.sidebar__brand-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.sidebar__collapse-btn {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    border-radius: 8px;
+}
+
+.sidebar__collapse-btn:hover {
+    color: #fff;
+    background: var(--surface-2);
+}
+
+.sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar__section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 14px 12px 6px;
+    white-space: nowrap;
+}
+
+.sidebar__link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--text-soft);
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background 140ms ease, color 140ms ease;
+    position: relative;
+}
+
+.sidebar__link svg {
+    flex-shrink: 0;
+    width: 19px;
+    height: 19px;
+}
+
+.sidebar__link:hover {
+    background: var(--surface-2);
+    color: #fff;
+}
+
+.sidebar__link.is-active {
+    background: linear-gradient(135deg, rgba(143, 53, 255, 0.28), rgba(180, 108, 255, 0.14));
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(180, 108, 255, 0.35);
+}
+
+.sidebar__link-badge {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+}
+
+.sidebar__footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar__avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.sidebar__user-name {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.sidebar__user-role {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   Main content area
+   ========================================================================== */
+
+.app-main {
+    flex: 1;
+    min-width: 0;
+    padding: 28px clamp(20px, 3vw, 40px) 48px;
+}
+
+.app-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+.app-topbar__title h1 {
+    margin: 0 0 4px;
+    font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+    letter-spacing: -0.03em;
+}
+
+.app-topbar__title p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+}
+
+.app-topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 140ms ease, color 140ms ease;
+}
+
+.icon-btn:hover {
+    background: var(--surface-3);
+    color: #fff;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 11px 18px;
+    cursor: pointer;
+    transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.btn--primary {
+    color: #fff;
+    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+    box-shadow: 0 14px 28px rgba(143, 53, 255, 0.28);
+}
+
+.btn--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 32px rgba(143, 53, 255, 0.36);
+}
+
+/* ==========================================================================
+   Shared card / surface primitives
+   ========================================================================== */
+
+.card {
+    background: var(--surface-1);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    backdrop-filter: blur(16px);
+}
+
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stat-card__label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-soft);
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.stat-card__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.stat-card__value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #fff;
+}
+
+.stat-card__delta {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.stat-card__delta--up {
+    color: var(--status-delivered);
+}
+
+.stat-card__delta--down {
+    color: var(--status-issue);
+}
+
+/* Status pill, reusable across tables/cards */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.status-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.status-pill--transit {
+    color: var(--status-transit);
+    background: var(--status-transit-bg);
+}
+
+.status-pill--delivered {
+    color: var(--status-delivered);
+    background: var(--status-delivered-bg);
+}
+
+.status-pill--pending {
+    color: var(--status-pending);
+    background: var(--status-pending-bg);
+}
+
+.status-pill--issue {
+    color: var(--status-issue);
+    background: var(--status-issue-bg);
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+    .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 40;
+        transform: translateX(-100%);
+    }
+
+    .sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .app-main {
+        padding: 20px 16px 40px;
+    }
+}
