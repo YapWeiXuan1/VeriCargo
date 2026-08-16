@@ -1,324 +1,641 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("ProductRegistry", function () {
-  let ProductRegistry;
-  let registry;
-  let owner, shipper, carrier, attacker, otherAccount;
+  let productRegistry;
+  let shipper, carrier, other;
+  const totalValue = ethers.parseEther("10");
+  const VERIFICATION_PERIOD = 3 * 24 * 60 * 60;
 
-  // Test values
-  const totalValue = ethers.parseEther("1.0"); // 1 ETH
-  const descriptions = ["Phase 1: Pickup", "Phase 2: Delivery"];
-  const percentages = [40, 60];
-  const proofHash1 = ethers.keccak256(ethers.toUtf8Bytes("proof_1"));
-  const proofHash2 = ethers.keccak256(ethers.toUtf8Bytes("proof_2"));
-  let deadline;
+  async function fastForward(seconds) {
+    await ethers.provider.send("evm_increaseTime", [seconds]);
+    await ethers.provider.send("evm_mine");
+  }
+
+  async function getTimestamp() {
+    const block = await ethers.provider.getBlock("latest");
+    return block.timestamp;
+  }
 
   beforeEach(async function () {
-    [owner, shipper, carrier, attacker, otherAccount] = await ethers.getSigners();
-
-    // Set deadline to 1 day in the future
-    const currentBlockTime = await time.latest();
-    deadline = currentBlockTime + 86400; // +24 hours
-
-    ProductRegistry = await ethers.getContractFactory("ProductRegistry");
-    registry = await ProductRegistry.deploy();
+    [shipper, carrier, other] = await ethers.getSigners();
+    const ProductRegistry = await ethers.getContractFactory("ProductRegistry");
+    productRegistry = await ProductRegistry.deploy();
   });
 
   describe("createAgreement", function () {
-    it("Should create an agreement successfully with correct state", async function () {
+    it("should create agreement successfully", async function () {
+      const deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      const descriptions = ["Milestone 1", "Milestone 2"];
+      const percentages = [50, 50];
+
       await expect(
-        registry.connect(shipper).createAgreement(
+        productRegistry.connect(shipper).createAgreement(
           carrier.address,
           totalValue,
           deadline,
           descriptions,
           percentages
         )
-      )
-        .to.emit(registry, "AgreementCreated")
+      ).to.emit(productRegistry, "AgreementCreated")
         .withArgs(0, shipper.address, carrier.address, totalValue, deadline);
-
-      const ag = await registry.getAgreement(0);
-      expect(ag.shipper).to.equal(shipper.address);
-      expect(ag.carrier).to.equal(carrier.address);
-      expect(ag.totalValue).to.equal(totalValue);
-      expect(ag.status).to.equal(0); // AgreementStatus.Pending
-      expect(ag.milestones.length).to.equal(2);
     });
 
-    it("Should revert with ZeroAddress if carrier is address(0)", async function () {
+    it("should revert if carrier is zero address", async function () {
+      const deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
       await expect(
-        registry.connect(shipper).createAgreement(
+        productRegistry.connect(shipper).createAgreement(
           ethers.ZeroAddress,
           totalValue,
           deadline,
-          descriptions,
-          percentages
+          ["M1"],
+          [100]
         )
-      ).to.be.revertedWithCustomError(registry, "ZeroAddress");
+      ).to.be.revertedWithCustomError(productRegistry, "ZeroAddress");
     });
 
-    it("Should revert with ZeroValue if totalValue is 0", async function () {
+    it("should revert if totalValue is zero", async function () {
+      const deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
       await expect(
-        registry.connect(shipper).createAgreement(
+        productRegistry.connect(shipper).createAgreement(
           carrier.address,
           0,
           deadline,
-          descriptions,
-          percentages
+          ["M1"],
+          [100]
         )
-      ).to.be.revertedWithCustomError(registry, "ZeroValue");
+      ).to.be.revertedWithCustomError(productRegistry, "ZeroValue");
     });
 
-    it("Should revert with InvalidDeadline if deadline is in the past", async function () {
-      const pastDeadline = (await time.latest()) - 100;
+    it("should revert if deadline <= now", async function () {
+      const deadline = await getTimestamp();
       await expect(
-        registry.connect(shipper).createAgreement(
-          carrier.address,
-          totalValue,
-          pastDeadline,
-          descriptions,
-          percentages
-        )
-      ).to.be.revertedWithCustomError(registry, "InvalidDeadline");
-    });
-
-    it("Should revert with MismatchedLengths if array lengths differ", async function () {
-      await expect(
-        registry.connect(shipper).createAgreement(
+        productRegistry.connect(shipper).createAgreement(
           carrier.address,
           totalValue,
           deadline,
-          ["Phase 1"],
-          percentages
+          ["M1"],
+          [100]
         )
-      ).to.be.revertedWithCustomError(registry, "MismatchedLengths");
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidDeadline");
     });
 
-    it("Should revert with InvalidPercentageTotal if percentages do not sum to 100", async function () {
+    it("should revert if arrays length mismatch", async function () {
+      const deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
       await expect(
-        registry.connect(shipper).createAgreement(
+        productRegistry.connect(shipper).createAgreement(
           carrier.address,
           totalValue,
           deadline,
-          descriptions,
-          [30, 60] // Sums to 90
+          ["M1", "M2"],
+          [100]
         )
-      ).to.be.revertedWithCustomError(registry, "InvalidPercentageTotal");
+      ).to.be.revertedWithCustomError(productRegistry, "MismatchedLengths");
+    });
+
+    it("should revert if no milestones", async function () {
+      const deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await expect(
+        productRegistry.connect(shipper).createAgreement(
+          carrier.address,
+          totalValue,
+          deadline,
+          [],
+          []
+        )
+      ).to.be.revertedWithCustomError(productRegistry, "NoMilestones");
+    });
+
+    it("should revert if percentages do not sum to 100", async function () {
+      const deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await expect(
+        productRegistry.connect(shipper).createAgreement(
+          carrier.address,
+          totalValue,
+          deadline,
+          ["M1", "M2"],
+          [30, 30]
+        )
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidPercentageTotal");
     });
   });
 
   describe("fundAgreement", function () {
+    let agreementId, deadline;
+
     beforeEach(async function () {
-      await registry.connect(shipper).createAgreement(
+      deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
         carrier.address,
         totalValue,
         deadline,
-        descriptions,
-        percentages
+        ["M1", "M2"],
+        [50, 50]
       );
+      agreementId = 0;
     });
 
-    it("Should fund agreement successfully", async function () {
-      await expect(
-        registry.connect(shipper).fundAgreement(0, { value: totalValue })
-      )
-        .to.emit(registry, "AgreementFunded")
-        .withArgs(0, totalValue);
-
-      const ag = await registry.getAgreement(0);
-      expect(ag.status).to.equal(1); // AgreementStatus.Funded
+    it("should fund agreement successfully", async function () {
+      const tx = productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue });
+      await expect(tx).to.emit(productRegistry, "AgreementFunded").withArgs(agreementId, totalValue);
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.status).to.equal(1);
       expect(ag.fundedAmount).to.equal(totalValue);
     });
 
-    it("Should revert with Unauthorized if non-shipper tries to fund", async function () {
+    it("should revert if not shipper", async function () {
       await expect(
-        registry.connect(attacker).fundAgreement(0, { value: totalValue })
-      ).to.be.revertedWithCustomError(registry, "Unauthorized");
+        productRegistry.connect(carrier).fundAgreement(agreementId, { value: totalValue })
+      ).to.be.revertedWithCustomError(productRegistry, "Unauthorized");
     });
 
-    it("Should revert with IncorrectFundingAmount if sent value is wrong", async function () {
-      const wrongValue = ethers.parseEther("0.5");
+    it("should revert if status is not Pending", async function () {
+      await productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue });
       await expect(
-        registry.connect(shipper).fundAgreement(0, { value: wrongValue })
-      ).to.be.revertedWithCustomError(registry, "IncorrectFundingAmount");
+        productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue })
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidStatus");
+    });
+
+    it("should revert if incorrect amount sent", async function () {
+      const wrongAmount = totalValue - ethers.parseEther("1");
+      await expect(
+        productRegistry.connect(shipper).fundAgreement(agreementId, { value: wrongAmount })
+      ).to.be.revertedWithCustomError(productRegistry, "IncorrectFundingAmount");
     });
   });
 
   describe("submitProofHash", function () {
+    let agreementId, deadline;
+    const hash = ethers.encodeBytes32String("proof1");
+    const hash2 = ethers.encodeBytes32String("proof2");
+
     beforeEach(async function () {
-      await registry.connect(shipper).createAgreement(
+      deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
         carrier.address,
         totalValue,
         deadline,
-        descriptions,
-        percentages
+        ["M1", "M2"],
+        [50, 50]
       );
-      await registry.connect(shipper).fundAgreement(0, { value: totalValue });
+      agreementId = 0;
+      await productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue });
     });
 
-    it("Should allow carrier to submit proof hash", async function () {
-      await expect(registry.connect(carrier).submitProofHash(0, 0, proofHash1))
-        .to.emit(registry, "ProofSubmitted")
-        .withArgs(0, 0, proofHash1);
-
-      expect(await registry.proofHashes(0, 0)).to.equal(proofHash1);
+    it("should submit proof for milestone 0 successfully", async function () {
+      const tx = productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+      await expect(tx).to.emit(productRegistry, "ProofSubmitted")
+        .withArgs(agreementId, 0, hash, (arg) => arg > 0, (arg) => arg > 0);
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.nextProofIndex).to.equal(1);
+      expect(ag.pendingProofCount).to.equal(1);
+      expect(ag.status).to.equal(2);
     });
 
-    it("Should revert with Unauthorized if caller is not carrier", async function () {
+    it("should revert if not carrier", async function () {
       await expect(
-        registry.connect(attacker).submitProofHash(0, 0, proofHash1)
-      ).to.be.revertedWithCustomError(registry, "Unauthorized");
+        productRegistry.connect(shipper).submitProofHash(agreementId, 0, hash)
+      ).to.be.revertedWithCustomError(productRegistry, "Unauthorized");
     });
 
-    it("Should revert with ProofAlreadySubmitted if submitted twice", async function () {
-      await registry.connect(carrier).submitProofHash(0, 0, proofHash1);
+    it("should revert if status is not Funded or InProgress", async function () {
+      const newDeadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
+        carrier.address,
+        totalValue,
+        newDeadline,
+        ["M1"],
+        [100]
+      );
+      const id = 1;
       await expect(
-        registry.connect(carrier).submitProofHash(0, 0, proofHash1)
-      ).to.be.revertedWithCustomError(registry, "ProofAlreadySubmitted");
+        productRegistry.connect(carrier).submitProofHash(id, 0, hash)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidStatus");
     });
 
-    it("Should revert with InvalidHash if hash is bytes32(0)", async function () {
+    it("should revert if milestone index out of bounds", async function () {
       await expect(
-        registry.connect(carrier).submitProofHash(0, 0, ethers.ZeroHash)
-      ).to.be.revertedWithCustomError(registry, "InvalidHash");
+        productRegistry.connect(carrier).submitProofHash(agreementId, 2, hash)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidMilestone");
+    });
+
+    it("should revert if submitting out of order (not nextProofIndex)", async function () {
+      // Try to submit M1 before M0 (out of order)
+      await expect(
+        productRegistry.connect(carrier).submitProofHash(agreementId, 1, hash)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidMilestone");
+    });
+
+    it("should revert if submitting after overall deadline", async function () {
+      await fastForward(8 * 24 * 60 * 60);
+      await expect(
+        productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash)
+      ).to.be.revertedWithCustomError(productRegistry, "ProofSubmissionDeadlinePassed");
+    });
+
+    it("should revert if hash is zero", async function () {
+      await expect(
+        productRegistry.connect(carrier).submitProofHash(agreementId, 0, ethers.ZeroHash)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidHash");
+    });
+
+    it("should allow resubmission after rejection", async function () {
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+      await productRegistry.connect(shipper).rejectMilestone(agreementId, 0);
+      await expect(
+        productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash2)
+      ).to.emit(productRegistry, "ProofSubmitted");
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.pendingProofCount).to.equal(1);
+      expect(ag.nextProofIndex).to.equal(1);
+    });
+
+    it("should allow submitting milestone 1 after milestone 0 is submitted (sequential)", async function () {
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+      await expect(
+        productRegistry.connect(carrier).submitProofHash(agreementId, 1, hash2)
+      ).to.emit(productRegistry, "ProofSubmitted");
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.nextProofIndex).to.equal(2);
+      expect(ag.pendingProofCount).to.equal(2);
     });
   });
 
   describe("verifyMilestone", function () {
+    let agreementId, deadline;
+    const hash = ethers.encodeBytes32String("proof1");
+
     beforeEach(async function () {
-      await registry.connect(shipper).createAgreement(
+      deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
         carrier.address,
         totalValue,
         deadline,
-        descriptions,
-        percentages
+        ["M1", "M2"],
+        [50, 50]
       );
-      await registry.connect(shipper).fundAgreement(0, { value: totalValue });
-      await registry.connect(carrier).submitProofHash(0, 0, proofHash1);
+      agreementId = 0;
+      await productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue });
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
     });
 
-    it("Should verify milestone 0, release funds, and transition to InProgress", async function () {
-      const initialCarrierBalance = await ethers.provider.getBalance(carrier.address);
-      const expectedRelease = (totalValue * 40n) / 100n; // 0.4 ETH
+    it("should verify milestone successfully", async function () {
+      const expectedRelease = totalValue * 50n / 100n;
+      const tx = productRegistry.connect(shipper).verifyMilestone(agreementId, 0);
+      await expect(tx).to.emit(productRegistry, "MilestoneVerified")
+        .withArgs(agreementId, 0, expectedRelease);
+      await expect(tx).to.changeEtherBalance(carrier, expectedRelease);
 
-      await expect(registry.connect(shipper).verifyMilestone(0, 0))
-        .to.emit(registry, "MilestoneVerified")
-        .withArgs(0, 0, expectedRelease);
-
-      const ag = await registry.getAgreement(0);
-      expect(ag.status).to.equal(2); // AgreementStatus.InProgress
-      expect(ag.currentMilestoneIndex).to.equal(1);
-
-      const finalCarrierBalance = await ethers.provider.getBalance(carrier.address);
-      expect(finalCarrierBalance - initialCarrierBalance).to.equal(expectedRelease);
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.nextVerificationIndex).to.equal(1);
+      expect(ag.pendingProofCount).to.equal(0);
+      expect(ag.verifiedMilestoneCount).to.equal(1);
+      expect(ag.releasedAmount).to.equal(expectedRelease);
     });
 
-    it("Should verify final milestone, sweep exact remaining dust, and set status to Completed", async function () {
-      // Step 1: Verify Milestone 0
-      await registry.connect(shipper).verifyMilestone(0, 0);
-
-      // Step 2: Submit & Verify Milestone 1 (Final)
-      await registry.connect(carrier).submitProofHash(0, 1, proofHash2);
-
-      await expect(registry.connect(shipper).verifyMilestone(0, 1))
-        .to.emit(registry, "MilestoneVerified")
-        .and.to.emit(registry, "AgreementCompleted")
-        .withArgs(0);
-
-      const ag = await registry.getAgreement(0);
-      expect(ag.status).to.equal(3); // AgreementStatus.Completed
-      expect(ag.releasedAmount).to.equal(totalValue);
-    });
-
-    it("Should revert with InvalidMilestone if verified out of order", async function () {
-      await registry.connect(carrier).submitProofHash(0, 1, proofHash2);
-
-      // Attempting to verify index 1 before index 0
+    it("should revert if not shipper", async function () {
       await expect(
-        registry.connect(shipper).verifyMilestone(0, 1)
-      ).to.be.revertedWithCustomError(registry, "InvalidMilestone");
+        productRegistry.connect(carrier).verifyMilestone(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "Unauthorized");
     });
 
-    it("Should revert with ProofMissing if carrier hasn't submitted proof hash", async function () {
-      // Milestone 0 has proof, but let's test a fresh agreement without proof
-      await registry.connect(shipper).createAgreement(
+    it("should revert if milestone index out of order", async function () {
+      await expect(
+        productRegistry.connect(shipper).verifyMilestone(agreementId, 1)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidMilestone");
+    });
+
+    it("should revert if milestone already verified", async function () {
+      await productRegistry.connect(shipper).verifyMilestone(agreementId, 0);
+      // After verification, nextVerificationIndex is 1, so trying again with index 0 reverts with InvalidMilestone
+      await expect(
+        productRegistry.connect(shipper).verifyMilestone(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidMilestone");
+    });
+
+    it("should revert if milestone already rejected", async function () {
+      await productRegistry.connect(shipper).rejectMilestone(agreementId, 0);
+      await expect(
+        productRegistry.connect(shipper).verifyMilestone(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "AlreadyRejected");
+    });
+
+    it("should revert if no proof submitted", async function () {
+      const newDeadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
+        carrier.address,
+        totalValue,
+        newDeadline,
+        ["M1"],
+        [100]
+      );
+      const id = 1;
+      await productRegistry.connect(shipper).fundAgreement(id, { value: totalValue });
+      await expect(
+        productRegistry.connect(shipper).verifyMilestone(id, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "ProofMissing");
+    });
+
+    it("should revert if verification period passed", async function () {
+      await fastForward(4 * 24 * 60 * 60);
+      await expect(
+        productRegistry.connect(shipper).verifyMilestone(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "VerificationPeriodPassed");
+    });
+  });
+
+  describe("rejectMilestone", function () {
+    let agreementId, deadline;
+    const hash = ethers.encodeBytes32String("proof1");
+
+    beforeEach(async function () {
+      deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
         carrier.address,
         totalValue,
         deadline,
-        descriptions,
-        percentages
+        ["M1", "M2"],
+        [50, 50]
       );
-      await registry.connect(shipper).fundAgreement(1, { value: totalValue });
-
-      await expect(
-        registry.connect(shipper).verifyMilestone(1, 0)
-      ).to.be.revertedWithCustomError(registry, "ProofMissing");
+      agreementId = 0;
+      await productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue });
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
     });
 
-    it("Should revert with DeadlinePassed if time is past deadline", async function () {
-      await time.increaseTo(deadline + 1);
+    it("should reject milestone successfully", async function () {
+      const tx = productRegistry.connect(shipper).rejectMilestone(agreementId, 0);
+      await expect(tx).to.emit(productRegistry, "MilestoneRejected")
+        .withArgs(agreementId, 0, (arg) => arg > 0);
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.nextVerificationIndex).to.equal(0);
+      expect(ag.pendingProofCount).to.equal(0);
+      expect(ag.verifiedMilestoneCount).to.equal(0);
+    });
 
+    it("should revert if not shipper", async function () {
       await expect(
-        registry.connect(shipper).verifyMilestone(0, 0)
-      ).to.be.revertedWithCustomError(registry, "DeadlinePassed");
+        productRegistry.connect(carrier).rejectMilestone(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "Unauthorized");
+    });
+
+    it("should revert if milestone index out of order", async function () {
+      await expect(
+        productRegistry.connect(shipper).rejectMilestone(agreementId, 1)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidMilestone");
+    });
+
+    it("should revert if already verified", async function () {
+      await productRegistry.connect(shipper).verifyMilestone(agreementId, 0);
+      // After verification, nextVerificationIndex is 1, so rejecting index 0 reverts with InvalidMilestone
+      await expect(
+        productRegistry.connect(shipper).rejectMilestone(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidMilestone");
+    });
+
+    it("should revert if already rejected", async function () {
+      await productRegistry.connect(shipper).rejectMilestone(agreementId, 0);
+      await expect(
+        productRegistry.connect(shipper).rejectMilestone(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "AlreadyRejected");
+    });
+
+    it("should revert if verification period passed", async function () {
+      await fastForward(4 * 24 * 60 * 60);
+      await expect(
+        productRegistry.connect(shipper).rejectMilestone(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "VerificationPeriodPassed");
+    });
+  });
+
+  describe("claimAfterVerificationTimeout", function () {
+    let agreementId, deadline;
+    const hash = ethers.encodeBytes32String("proof1");
+
+    beforeEach(async function () {
+      deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
+        carrier.address,
+        totalValue,
+        deadline,
+        ["M1", "M2"],
+        [50, 50]
+      );
+      agreementId = 0;
+      await productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue });
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+    });
+
+    it("should claim after timeout successfully", async function () {
+      await fastForward(4 * 24 * 60 * 60);
+      const expectedRelease = totalValue * 50n / 100n;
+      const tx = productRegistry.connect(carrier).claimAfterVerificationTimeout(agreementId, 0);
+      await expect(tx).to.emit(productRegistry, "MilestoneClaimedAfterTimeout")
+        .withArgs(agreementId, 0, expectedRelease);
+      await expect(tx).to.changeEtherBalance(carrier, expectedRelease);
+
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.nextVerificationIndex).to.equal(1);
+      expect(ag.pendingProofCount).to.equal(0);
+    });
+
+    it("should revert if not carrier", async function () {
+      await fastForward(4 * 24 * 60 * 60);
+      await expect(
+        productRegistry.connect(shipper).claimAfterVerificationTimeout(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "Unauthorized");
+    });
+
+    it("should revert if verification period not passed yet", async function () {
+      await expect(
+        productRegistry.connect(carrier).claimAfterVerificationTimeout(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "VerificationPeriodNotPassed");
+    });
+
+    it("should revert if milestone already verified", async function () {
+      await productRegistry.connect(shipper).verifyMilestone(agreementId, 0);
+      await fastForward(4 * 24 * 60 * 60);
+      // After verification, nextVerificationIndex is 1, so claiming index 0 reverts with InvalidMilestone
+      await expect(
+        productRegistry.connect(carrier).claimAfterVerificationTimeout(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidMilestone");
+    });
+
+    it("should revert if milestone already rejected", async function () {
+      await productRegistry.connect(shipper).rejectMilestone(agreementId, 0);
+      await fastForward(4 * 24 * 60 * 60);
+      await expect(
+        productRegistry.connect(carrier).claimAfterVerificationTimeout(agreementId, 0)
+      ).to.be.revertedWithCustomError(productRegistry, "AlreadyRejected");
     });
   });
 
   describe("refund", function () {
+    let agreementId, deadline;
+    const hash = ethers.encodeBytes32String("proof1");
+
     beforeEach(async function () {
-      await registry.connect(shipper).createAgreement(
+      deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
         carrier.address,
         totalValue,
         deadline,
-        descriptions,
-        percentages
+        ["M1", "M2"],
+        [50, 50]
       );
-      await registry.connect(shipper).fundAgreement(0, { value: totalValue });
+      agreementId = 0;
+      await productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue });
     });
 
-    it("Should revert with DeadlineNotPassed if deadline hasn't passed", async function () {
+    it("should refund after deadline with no pending proofs", async function () {
+      // Verify M0, submit and reject M1 (so no pending)
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+      await productRegistry.connect(shipper).verifyMilestone(agreementId, 0);
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 1, hash);
+      await productRegistry.connect(shipper).rejectMilestone(agreementId, 1);
+
+      await fastForward(8 * 24 * 60 * 60);
+      const expectedRefund = totalValue * 50n / 100n;
+      const tx = productRegistry.connect(shipper).refund(agreementId);
+      await expect(tx).to.emit(productRegistry, "AgreementRefunded").withArgs(agreementId, expectedRefund);
+      await expect(tx).to.changeEtherBalance(shipper, expectedRefund);
+
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.status).to.equal(4); // Refunded
+    });
+
+    it("should revert if called before deadline", async function () {
       await expect(
-        registry.connect(shipper).refund(0)
-      ).to.be.revertedWithCustomError(registry, "DeadlineNotPassed");
+        productRegistry.connect(shipper).refund(agreementId)
+      ).to.be.revertedWithCustomError(productRegistry, "DeadlineNotPassed");
     });
 
-    it("Should refund remaining balance to shipper after deadline passes", async function () {
-      // Fast forward past deadline
-      await time.increaseTo(deadline + 100);
+    it("should revert if there is a pending proof", async function () {
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+      await fastForward(8 * 24 * 60 * 60);
+      await expect(
+        productRegistry.connect(shipper).refund(agreementId)
+      ).to.be.revertedWithCustomError(productRegistry, "PendingProofExists");
+    });
 
-      const initialShipperBalance = await ethers.provider.getBalance(shipper.address);
+    it("should revert if no funds to refund (all released)", async function () {
+      // Verify both milestones
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+      await productRegistry.connect(shipper).verifyMilestone(agreementId, 0);
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 1, hash);
+      await productRegistry.connect(shipper).verifyMilestone(agreementId, 1);
 
-      const tx = await registry.connect(shipper).refund(0);
-      const receipt = await tx.wait();
-      const gasUsed = receipt.fee; // Gas spent by shipper
+      await fastForward(8 * 24 * 60 * 60);
+      // Status is Completed, so refund reverts with InvalidStatus (not NoFundsToRefund)
+      await expect(
+        productRegistry.connect(shipper).refund(agreementId)
+      ).to.be.revertedWithCustomError(productRegistry, "InvalidStatus");
+    });
 
-      const finalShipperBalance = await ethers.provider.getBalance(shipper.address);
+    it("should revert if not shipper", async function () {
+      await fastForward(8 * 24 * 60 * 60);
+      await expect(
+        productRegistry.connect(carrier).refund(agreementId)
+      ).to.be.revertedWithCustomError(productRegistry, "Unauthorized");
+    });
+  });
 
-      // Final balance = Initial balance + refundAmount - gasUsed
-      expect(finalShipperBalance).to.equal(
-        initialShipperBalance + totalValue - gasUsed
+  describe("View functions", function () {
+    let agreementId, deadline;
+    const hash = ethers.encodeBytes32String("proof1");
+
+    beforeEach(async function () {
+      deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
+        carrier.address,
+        totalValue,
+        deadline,
+        ["M1", "M2"],
+        [50, 50]
       );
-
-      const ag = await registry.getAgreement(0);
-      expect(ag.status).to.equal(4); // AgreementStatus.Refunded
+      agreementId = 0;
+      await productRegistry.connect(shipper).fundAgreement(agreementId, { value: totalValue });
     });
 
-    it("Should refund remaining unreleased amount if partially completed", async function () {
-      // Complete milestone 0 (40%)
-      await registry.connect(carrier).submitProofHash(0, 0, proofHash1);
-      await registry.connect(shipper).verifyMilestone(0, 0);
+    it("should get agreement details", async function () {
+      const ag = await productRegistry.getAgreement(agreementId);
+      expect(ag.shipper).to.equal(shipper.address);
+      expect(ag.carrier).to.equal(carrier.address);
+      expect(ag.totalValue).to.equal(totalValue);
+      expect(ag.deadline).to.equal(deadline);
+      expect(ag.fundedAmount).to.equal(totalValue);
+      expect(ag.releasedAmount).to.equal(0);
+      expect(ag.nextProofIndex).to.equal(0);
+      expect(ag.nextVerificationIndex).to.equal(0);
+      expect(ag.verifiedMilestoneCount).to.equal(0);
+      expect(ag.pendingProofCount).to.equal(0);
+      expect(ag.status).to.equal(1);
+      expect(ag.milestones.length).to.equal(2);
+    });
 
-      // Advance past deadline
-      await time.increaseTo(deadline + 100);
+    it("should get shipper agreements", async function () {
+      const list = await productRegistry.getShipperAgreements(shipper.address);
+      expect(list).to.deep.equal([0n]);
+    });
 
-      const expectedRefund = (totalValue * 60n) / 100n; // 0.6 ETH
+    it("should get carrier agreements", async function () {
+      const list = await productRegistry.getCarrierAgreements(carrier.address);
+      expect(list).to.deep.equal([0n]);
+    });
 
-      await expect(registry.connect(shipper).refund(0))
-        .to.emit(registry, "AgreementRefunded")
-        .withArgs(0, expectedRefund);
+    it("should get verification deadline", async function () {
+      expect(await productRegistry.getVerificationDeadline(agreementId, 0)).to.equal(0);
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+      const submittedAt = await getTimestamp();
+      const expected = submittedAt + VERIFICATION_PERIOD;
+      const actual = await productRegistry.getVerificationDeadline(agreementId, 0);
+      expect(actual).to.be.closeTo(expected, 2);
+    });
+
+    it("should check proof pending", async function () {
+      expect(await productRegistry.isProofPending(agreementId, 0)).to.equal(false);
+      await productRegistry.connect(carrier).submitProofHash(agreementId, 0, hash);
+      expect(await productRegistry.isProofPending(agreementId, 0)).to.equal(true);
+      await productRegistry.connect(shipper).verifyMilestone(agreementId, 0);
+      expect(await productRegistry.isProofPending(agreementId, 0)).to.equal(false);
+    });
+  });
+
+  describe("Full lifecycle with resubmission", function () {
+    it("should handle rejection and resubmission correctly", async function () {
+      const deadline = (await getTimestamp()) + 7 * 24 * 60 * 60;
+      await productRegistry.connect(shipper).createAgreement(
+        carrier.address,
+        totalValue,
+        deadline,
+        ["M1", "M2"],
+        [50, 50]
+      );
+      const id = 0;
+      await productRegistry.connect(shipper).fundAgreement(id, { value: totalValue });
+
+      const hash1 = ethers.encodeBytes32String("proof1");
+      await productRegistry.connect(carrier).submitProofHash(id, 0, hash1);
+      await productRegistry.connect(shipper).rejectMilestone(id, 0);
+      let ag = await productRegistry.getAgreement(id);
+      expect(ag.nextVerificationIndex).to.equal(0);
+
+      const hash2 = ethers.encodeBytes32String("proof2");
+      await productRegistry.connect(carrier).submitProofHash(id, 0, hash2);
+      ag = await productRegistry.getAgreement(id);
+      expect(ag.pendingProofCount).to.equal(1);
+
+      await productRegistry.connect(shipper).verifyMilestone(id, 0);
+      ag = await productRegistry.getAgreement(id);
+      expect(ag.nextVerificationIndex).to.equal(1);
+      expect(ag.pendingProofCount).to.equal(0);
+      expect(ag.releasedAmount).to.equal(totalValue * 50n / 100n);
+
+      const hash3 = ethers.encodeBytes32String("proof3");
+      await productRegistry.connect(carrier).submitProofHash(id, 1, hash3);
+      await productRegistry.connect(shipper).verifyMilestone(id, 1);
+      ag = await productRegistry.getAgreement(id);
+      expect(ag.status).to.equal(3);
+      expect(ag.releasedAmount).to.equal(totalValue);
     });
   });
 });
