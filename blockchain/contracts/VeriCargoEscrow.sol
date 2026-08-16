@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-/// @title ProductRegistry
+/// @title VeriCargoEscrow
 /// @notice Milestone-based logistics escrow between shipper and carrier
-contract ProductRegistry {
+contract VeriCargoEscrow {
 
     // =============================================================
     // ENUM
