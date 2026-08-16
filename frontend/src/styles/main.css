@@ -59,9 +59,9 @@ body {
 .app-shell {
     position: relative;
     display: flex;
-    min-height: 100svh;
+    min-height: 100vh;
     isolation: isolate;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .app-shell::before,
@@ -258,7 +258,7 @@ body {
 .app-main {
     flex: 1;
     min-width: 0;
-    padding: 28px clamp(20px, 3vw, 40px) 48px;
+    padding: 28px clamp(20px, 3vw, 40px) 0;
 }
 
 .app-topbar {
@@ -442,6 +442,6 @@ body {
     }
 
     .app-main {
-        padding: 20px 16px 40px;
+        padding: 20px 16px 16px;
     }
 }
