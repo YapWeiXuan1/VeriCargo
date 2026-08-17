@@ -1,7 +1,7 @@
-import useMetamask from '../hooks/useWallet'
+import useWallet from '../hooks/useWallet'
 
 function MetaMaskConnectButton({ className = '', label = 'Connect to MetaMask' }) {
-  const { account, error, loading, connect } = useMetamask()
+  const { account, error, loading, connect } = useWallet()
 
   return (
     <div className={className}>
@@ -19,7 +19,7 @@ function MetaMaskConnectButton({ className = '', label = 'Connect to MetaMask' }
         {loading
           ? 'Connecting...'
           : account
-            ? `Connected: ${account.slice(0, 6)}...`
+            ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
             : label}
       </button>
 

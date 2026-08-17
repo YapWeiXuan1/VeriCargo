@@ -11,3 +11,11 @@ export const connectMetaMask = async () => {
   }
   return accounts[0]; // Return the first account
 }
+
+export const getConnectedMetaMaskAccount = async () => {
+  if (!window.ethereum) return null
+  const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+  if (!accounts[0]) return null
+  const chainId = await window.ethereum.request({ method: 'eth_chainId' })
+  return chainId === '0xaa36a7' ? accounts[0] : null
+}

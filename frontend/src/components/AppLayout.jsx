@@ -1,9 +1,13 @@
 import Sidebar from './Sidebar'
 
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem('user')) ?? undefined } catch { return undefined }
+}
+
 function AppLayout({ title, subtitle, actions, children }) {
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar user={getStoredUser()} />
 
       <main className="app-main">
         <div className="app-topbar">

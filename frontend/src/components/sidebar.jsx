@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import useWallet from '../hooks/useWallet'
 
 const navSections = [
   {
@@ -21,7 +22,7 @@ const navSections = [
   {
     label: 'Account',
     links: [
-      { to: '/company', label: 'Company profile', icon: 'building' },
+      { to: '/profile', label: 'Profile', icon: 'building' },
       { to: '/settings', label: 'Settings', icon: 'settings' },
     ],
   },
@@ -36,6 +37,7 @@ const icons = {
   wallet: <path d="M21 7H4a1 1 0 00-1 1v9a2 2 0 002 2h16a1 1 0 001-1V8a1 1 0 00-1-1zM3 7V5a2 2 0 012-2h11 M17 13h1" />,
   building: <path d="M3 21h18M6 21V5a1 1 0 011-1h6a1 1 0 011 1v16M6 9h1M6 13h1M11 9h1M11 13h1M14 21v-6h5a1 1 0 011 1v5" />,
   settings: <path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.66.28 1.51.99 1.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />,
+  logout: <path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 00-2-2h-6" />,
 }
 
 function Icon({ name }) {
@@ -48,8 +50,20 @@ function Icon({ name }) {
 
 function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
   const [collapsed, setCollapsed] = useState(false)
+  const navigate = useNavigate()
+  const { disconnect } = useWallet()
+  const currentUser = user || { name: 'VeriCargo User', role: 'User' }
+  const dashboardPath = currentUser.role?.toLowerCase() === 'carrier' ? '/carrierdashboard' : '/shipperdashboard'
 
-  const initials = user.name
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('role')
+    disconnect()
+    navigate('/login', { replace: true })
+  }
+
+  const initials = (currentUser.fullName || currentUser.name || 'User')
     .split(' ')
     .map((n) => n[0])
     .join('')
@@ -80,7 +94,7 @@ function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
             {section.links.map((link) => (
               <NavLink
                 key={link.to}
-                to={link.to}
+                to={link.to === '/dashboard' ? dashboardPath : link.to}
                 className={({ isActive }) => `sidebar__link ${isActive ? 'is-active' : ''}`}
                 title={collapsed ? link.label : undefined}
               >
@@ -97,10 +111,14 @@ function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
         <div className="sidebar__avatar">{initials}</div>
         {!collapsed && (
           <div>
-            <div className="sidebar__user-name">{user.name}</div>
-            <div className="sidebar__user-role">{user.role}</div>
+            <div className="sidebar__user-name">{currentUser.fullName || currentUser.name || 'VeriCargo User'}</div>
+            <div className="sidebar__user-role">{currentUser.role || 'User'}</div>
           </div>
         )}
+        <button type="button" className="sidebar__logout" onClick={handleLogout} aria-label="Log out" title="Log out">
+          <Icon name="logout" />
+          {!collapsed && <span>Log out</span>}
+        </button>
       </div>
     </aside>
   )

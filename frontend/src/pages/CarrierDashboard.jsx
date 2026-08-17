@@ -1,6 +1,8 @@
 import '../styles/main.css'
 import '../styles/dashboard.css'
 import AppLayout from '../components/AppLayout'
+import MetaMaskConnectButton from '../components/metaMaskConnectButton'
+import useWallet from '../hooks/useWallet'
 
 const stats = [
   {
@@ -69,14 +71,15 @@ const activity = [
 ]
 
 function CarrierDashboard() {
+  const { isConnected } = useWallet()
   return (
     <AppLayout
       title="Welcome back, Carrier"
       subtitle="Manage your assigned agreements and milestone submissions."
       actions={
-        <button className="btn btn--primary">
+        <><MetaMaskConnectButton className="wallet-connect wallet-connect--topbar" /><button type="button" className="btn btn--primary" disabled={!isConnected} title={!isConnected ? 'Connect MetaMask to submit proof' : undefined}>
           Submit Proof
-        </button>
+        </button></>
       }
     >
       <div className="stat-grid">

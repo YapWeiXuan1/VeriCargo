@@ -1,25 +1,10 @@
-import { useState } from 'react';
-import { connectMetaMask } from '../services/metamaskService';
+import { useContext } from 'react'
+import { WalletContext } from '../context/WalletContext'
 
-function useMetamask() {
-    const [account, setAccount] = useState(null);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false);
-
-    const connect = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const address = await connectMetaMask();
-            setAccount(address);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return { account, error, loading, connect };
+function useWallet() {
+  const wallet = useContext(WalletContext)
+  if (!wallet) throw new Error('useWallet must be used inside WalletProvider')
+  return wallet
 }
 
-export default useMetamask;
+export default useWallet

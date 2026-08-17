@@ -331,6 +331,51 @@ body {
     box-shadow: 0 16px 32px rgba(143, 53, 255, 0.36);
 }
 
+.sidebar__logout {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-faint);
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.sidebar__logout:hover { color: var(--status-issue); background: var(--status-issue-bg); }
+.sidebar__logout svg { width: 17px; height: 17px; }
+.sidebar--collapsed .sidebar__footer { justify-content: center; padding: 10px 4px; flex-direction: column; }
+.sidebar--collapsed .sidebar__logout { margin-left: 0; }
+
+.btn:disabled { cursor: not-allowed; opacity: 0.48; transform: none; box-shadow: none; }
+.wallet-connect { position: relative; }
+.metamask-button { min-height: 42px; display: inline-flex; align-items: center; gap: 9px; padding: 9px 14px; border: 1px solid rgba(246, 133, 27, 0.45); border-radius: var(--radius-sm); background: rgba(246, 133, 27, 0.12); color: var(--text-main); font: inherit; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
+.metamask-button:hover { background: rgba(246, 133, 27, 0.2); }
+.metamask-button:disabled { cursor: wait; opacity: 0.65; }
+.metamask-icon { width: 22px; height: 22px; }
+.metamask-status { margin: 8px 0 0; font-size: 0.76rem; }
+.metamask-status--error { color: var(--status-issue); }
+.wallet-connect--topbar .metamask-status { position: absolute; right: 0; width: 260px; text-align: right; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.profile-card h2 { margin: 8px 0 18px; }
+.profile-card__eyebrow { color: var(--accent); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.profile-card__copy { color: var(--text-soft); line-height: 1.6; }
+.profile-details { margin: 0; }
+.profile-details div { padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.profile-details dt { color: var(--text-faint); font-size: 0.75rem; text-transform: uppercase; }
+.profile-details dd { margin: 4px 0 0; color: var(--text-main); text-transform: capitalize; }
+.wallet-state { display: flex; align-items: center; gap: 8px; margin-top: 18px; color: var(--text-faint); font-size: 0.82rem; overflow-wrap: anywhere; }
+.wallet-state span { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--status-issue); }
+.wallet-state--connected { color: var(--status-delivered); }
+.wallet-state--connected span { background: var(--status-delivered); }
+.empty-page { min-height: 220px; display: grid; place-content: center; text-align: center; }
+.empty-page h2 { margin: 0 0 8px; }
+.empty-page p { margin: 0; color: var(--text-soft); }
+
 /* ==========================================================================
    Shared card / surface primitives
    ========================================================================== */
@@ -444,4 +489,8 @@ body {
     .app-main {
         padding: 20px 16px 16px;
     }
+
+    .app-topbar { align-items: flex-start; flex-direction: column; }
+    .app-topbar__actions { flex-wrap: wrap; }
+    .profile-grid { grid-template-columns: 1fr; }
 }

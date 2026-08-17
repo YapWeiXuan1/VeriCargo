@@ -1,6 +1,9 @@
 import '../styles/main.css'
 import '../styles/dashboard.css'
 import AppLayout from '../components/AppLayout'
+import MetaMaskConnectButton from '../components/metaMaskConnectButton'
+import useWallet from '../hooks/useWallet'
+import { Link } from 'react-router-dom'
 
 const stats = [
   { label: 'Active shipments', value: '18', delta: '+3 this week', up: true, icon: 'box' },
@@ -46,17 +49,18 @@ const activityIcon = {
 }
 
 function ShipperDashboard() {
+  const { isConnected } = useWallet()
   return (
     <AppLayout
       title="Welcome back, Alex"
       subtitle="Here's what's moving across your supply chain today."
       actions={
-        <button type="button" className="btn btn--primary">
+        <><MetaMaskConnectButton className="wallet-connect wallet-connect--topbar" /><button type="button" className="btn btn--primary" disabled={!isConnected} title={!isConnected ? 'Connect MetaMask to create a shipment' : undefined}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
           New shipment
-        </button>
+        </button></>
       }
     >
       <div className="stat-grid">
@@ -85,7 +89,7 @@ function ShipperDashboard() {
               <h2>Recent shipments</h2>
               <p>Your most recently updated cargo</p>
             </div>
-            <a className="panel-link" href="/shipments">View all</a>
+            <Link className="panel-link" to="/shipments">View all</Link>
           </div>
 
           <table className="ship-table">
