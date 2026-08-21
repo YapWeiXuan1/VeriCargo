@@ -1,167 +1,21 @@
 import '../styles/main.css'
 import '../styles/dashboard.css'
 import AppLayout from '../components/AppLayout'
-import MetaMaskConnectButton from '../components/metaMaskConnectButton'
-import useWallet from '../hooks/useWallet'
-
-const stats = [
-  {
-    label: 'Assigned Agreements',
-    value: '12',
-    delta: '+2 this week',
-    up: true,
-  },
-  {
-    label: 'Pending Proof',
-    value: '5',
-    delta: 'Awaiting submission',
-    up: true,
-  },
-  {
-    label: 'Completed Agreements',
-    value: '21',
-    delta: '+4 this month',
-    up: true,
-  },
-  {
-    label: 'Payments Received',
-    value: '8.75 ETH',
-    delta: 'Released milestones',
-    up: true,
-  },
-]
-
-const agreements = [
-  {
-    id: '#001',
-    shipper: 'ABC Trading',
-    milestone: 'Goods Loaded',
-    status: 'Pending Proof',
-    payment: '1 ETH',
-  },
-  {
-    id: '#002',
-    shipper: 'Global Export',
-    milestone: 'Arrived at Port',
-    status: 'Verified',
-    payment: '2 ETH',
-  },
-  {
-    id: '#003',
-    shipper: 'Ocean Logistics',
-    milestone: 'Custom Clearance',
-    status: 'In Progress',
-    payment: '0.5 ETH',
-  },
-]
-
-const activity = [
-  {
-    text: 'Milestone #2 verified by shipper.',
-    time: '1 hour ago',
-  },
-  {
-    text: 'Payment of 2 ETH released.',
-    time: 'Yesterday',
-  },
-  {
-    text: 'New agreement assigned.',
-    time: '2 days ago',
-  },
-]
+import { ContractNote, PageState, StatusPill, WalletAction } from '../components/AgreementUI'
+import { useState } from 'react'
+import useAgreements from '../hooks/useAgreements'
+import { Link } from 'react-router-dom'
 
 function CarrierDashboard() {
-  const { isConnected } = useWallet()
-  return (
-    <AppLayout
-      title="Welcome back, Carrier"
-      subtitle="Manage your assigned agreements and milestone submissions."
-      actions={
-        <><MetaMaskConnectButton className="wallet-connect wallet-connect--topbar" /><button type="button" className="btn btn--primary" disabled={!isConnected} title={!isConnected ? 'Connect MetaMask to submit proof' : undefined}>
-          Submit Proof
-        </button></>
-      }
-    >
-      <div className="stat-grid">
-        {stats.map((item) => (
-          <div className="card stat-card" key={item.label}>
-            <div className="stat-card__label">
-              {item.label}
-            </div>
-
-            <div className="stat-card__value">
-              {item.value}
-            </div>
-
-            <div
-              className={`stat-card__delta ${
-                item.up
-                  ? 'stat-card__delta--up'
-                  : 'stat-card__delta--down'
-              }`}
-            >
-              {item.delta}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="dash-grid">
-        <div className="card">
-          <div className="panel-header">
-            <div>
-              <h2>Assigned Agreements</h2>
-              <p>Current agreements assigned to you</p>
-            </div>
-          </div>
-
-          <table className="ship-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Shipper</th>
-                <th>Current Milestone</th>
-                <th>Status</th>
-                <th>Payment</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {agreements.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.id}</td>
-                  <td>{item.shipper}</td>
-                  <td>{item.milestone}</td>
-                  <td>{item.status}</td>
-                  <td>{item.payment}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="card">
-          <div className="panel-header">
-            <div>
-              <h2>Recent Activity</h2>
-              <p>Latest blockchain events</p>
-            </div>
-          </div>
-
-          <div className="activity-list">
-            {activity.map((item, index) => (
-              <div className="activity-item" key={index}>
-                <div className="activity-item__body">
-                  <p>{item.text}</p>
-                  <span>{item.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </AppLayout>
-  )
+  const data = useAgreements('carrier'); const [now] = useState(() => Date.now() / 1000)
+  const active = data.agreements.filter((a) => a.status === 1 || a.status === 2)
+  const ready = active.filter((a) => a.nextProofIndex < a.milestones.length || a.milestones.some((m) => m.rejected)).length
+  const claimable = active.filter((a) => a.milestones.some((m) => m.index === a.nextVerificationIndex && m.proofSubmittedAt && !m.verified && !m.rejected && now > m.proofSubmittedAt + 259200)).length
+  const stats = [{ label: 'Active agreements', value: active.length, note: 'Assigned to this wallet' }, { label: 'Ready for proof', value: ready, note: 'New or rejected milestone' }, { label: 'Timeout claims', value: claimable, note: 'Review window elapsed' }, { label: 'Payments released', value: `${data.agreements.reduce((sum, a) => sum + Number(a.releasedEth), 0).toFixed(3)} ETH`, note: 'Verified milestones' }]
+  return <AppLayout title="Carrier dashboard" subtitle="A live summary of assigned escrow work." actions={<><WalletAction /><Link className="btn btn--primary" to="/carrier/proofs">Submit proof</Link></>}><ContractNote /><PageState loading={data.loading} error={data.error} connected={data.isConnected} />
+    <div className="stat-grid">{stats.map((s) => <div className="card stat-card" key={s.label}><div className="stat-card__label">{s.label}</div><div className="stat-card__value">{s.value}</div><div className="stat-card__delta stat-card__delta--up">{s.note}</div></div>)}</div>
+    <div className="dash-grid"><div className="card"><div className="panel-header"><div><h2>Assigned agreements</h2><p>Current escrow commitments</p></div><Link className="panel-link" to="/carrier/agreements">View all</Link></div><table className="ship-table"><thead><tr><th>ID</th><th>Value</th><th>Milestones</th><th>Released</th><th>Status</th></tr></thead><tbody>{active.slice(-5).reverse().map((a) => <tr key={a.id}><td className="ship-table__id">#{a.id}</td><td>{a.totalEth} ETH</td><td>{a.verifiedMilestoneCount}/{a.milestones.length}</td><td>{a.releasedEth} ETH</td><td><StatusPill status={a.status} /></td></tr>)}</tbody></table>{!active.length && <p className="muted-copy">No active agreements.</p>}</div>
+    <div className="card"><div className="panel-header"><div><h2>Next actions</h2><p>Contract functions grouped by workflow</p></div></div><div className="quick-links"><Link to="/carrier/proofs">Submit milestone proof <span>→</span></Link><Link to="/carrier/claims">Check timeout claims <span>→</span></Link><Link to="/carrier/history">Open agreement history <span>→</span></Link></div></div></div>
+  </AppLayout>
 }
-
 export default CarrierDashboard
