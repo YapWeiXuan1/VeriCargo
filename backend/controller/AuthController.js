@@ -18,13 +18,13 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     try{
-        const { email, password } = req.body;
+        const { email, password, rememberMe } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        const result = await authService.loginUser(email, password);
+        const result = await authService.loginUser(email, password, rememberMe);
         res.status(200).json({ message: 'User logged in successfully', data: result });
 
     } catch (error) {

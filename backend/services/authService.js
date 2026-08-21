@@ -36,7 +36,7 @@ const registerUser = async (email, password, fullName, role) => {
     }
 }
 
-const loginUser = async (email, password) => {
+const loginUser = async (email, password, rememberMe) => {
     const {data:user,error} = await supabase.from('users').select('*').eq('company_email', email).single();
 
     if(!user){
@@ -50,9 +50,7 @@ const loginUser = async (email, password) => {
         error.statusCode = 401
         throw error
     }
-    const token = jwt.sign({ id: user.id, email: user.company_email }, process.env.JWT_SECRET, {
-        expiresIn: '7d',
-    })
+    const token = jwt.sign({ id: user.id, email: user.company_email }, process.env.JWT_SECRET, { expiresIn: rememberMe ? '30d' : '1d' } )
 
     return {
         token,

@@ -6,13 +6,10 @@ import CarrierDashboard from '../pages/CarrierDashboard.jsx'
 import Profile from '../pages/profile.jsx'
 import PlaceholderPage from '../pages/PlaceholderPage.jsx'
 import { AgreementHistory, CarrierAgreements, CarrierClaims, CarrierProofs, ShipperAgreements, ShipperFunds, ShipperReview } from '../pages/EscrowPages.jsx'
-
-function getUserRole() {
-    try { return JSON.parse(localStorage.getItem('user'))?.role?.toLowerCase() } catch { return null }
-}
+import { isLoggedIn, getUserRole } from '../context/auth'
 
 function ProtectedRoute({ children }) {
-    return localStorage.getItem('token') ? children : <Navigate to="/login" replace />
+    return isLoggedIn() ? children : <Navigate to="/login" replace />
 }
 
 function DashboardRedirect() {
@@ -22,7 +19,7 @@ function DashboardRedirect() {
 function AppRoutes() {
     return (
         <Routes>
-            <Route path="/" element={<Navigate to={localStorage.getItem('token') ? '/dashboard' : '/login'} replace />} />
+            <Route path="/" element={<Navigate to={isLoggedIn() ? '/dashboard' : '/login'} replace />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
@@ -41,7 +38,7 @@ function AppRoutes() {
                 <Route key={page} path={`/${page}`} element={<ProtectedRoute><PlaceholderPage title={page[0].toUpperCase() + page.slice(1)} /></ProtectedRoute>} />
             ))}
             <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to={localStorage.getItem('token') ? '/dashboard' : '/login'} replace />} />
+            <Route path="*" element={<Navigate to={isLoggedIn() ? '/dashboard' : '/login'} replace />} />
         </Routes>
     )
 }
