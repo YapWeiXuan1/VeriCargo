@@ -2,6 +2,7 @@ import '../styles/auth/AuthPage.css'
 import { Link } from 'react-router-dom'
 import { useRegisterForm } from '../hooks/useRegisterForm'
 import { EyeIcon, EyeOffIcon } from '../components/icons' 
+import { Popup } from '../components/Popup'
 
 function RegisterPage() {
   const {
@@ -10,12 +11,14 @@ function RegisterPage() {
     showConfirmPassword,
     errors,
     submitError,
+    popup,
     loading,
     setShowPassword,
     setShowConfirmPassword,
     handleChange,
     handleRoleSelect,
     handleSubmit,
+    closePopup,
   } = useRegisterForm()
 
   return (
@@ -116,6 +119,7 @@ function RegisterPage() {
           </p>
         </form>
       </section>
+      {popup && <Popup {...popup} onAction={closePopup} onClose={closePopup} />}
     </article>
   )
 }

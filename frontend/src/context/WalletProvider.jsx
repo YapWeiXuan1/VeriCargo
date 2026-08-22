@@ -4,6 +4,7 @@ import { WalletContext } from './WalletContext'
 
 function WalletProvider({ children }) {
   const [account, setAccount] = useState(null)
+  const [walletAmount, setWalletAmount] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const refreshAccount = useCallback(async () => {
@@ -14,7 +15,7 @@ function WalletProvider({ children }) {
     getConnectedMetaMaskAccount().then(setAccount).catch(() => setAccount(null))
     const ethereum = window.ethereum
     if (!ethereum?.on) return undefined
-    const onAccounts = (accounts) => { setAccount(accounts[0] ?? null); setError(null) }
+    const onAccounts = (accounts) => { setAccount(accounts[0] ?? null); setError(null); setWalletAmount(accounts[0]?.balance ?? null) }
     const onChain = () => refreshAccount()
     ethereum.on('accountsChanged', onAccounts)
     ethereum.on('chainChanged', onChain)
@@ -33,7 +34,7 @@ function WalletProvider({ children }) {
     setError(null)
   }, [])
 
-  const value = useMemo(() => ({ account, error, loading, connect, disconnect, isConnected: Boolean(account) }), [account, error, loading, connect, disconnect])
+  const value = useMemo(() => ({ account, walletAmount, error, loading, connect, disconnect, isConnected: Boolean(account) }), [account, walletAmount, error, loading, connect, disconnect])
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
 }
 export default WalletProvider

@@ -23,5 +23,13 @@ export const loginUser = async (data) => {
   const response = await axiosClient.post('/auth/login', data);
   return response.data;
 }
+export const updateProfile = async (data) => {
+  const response = await axiosClient.put('/auth/profile', data)
+  return response.data
+}
+export const resetPassword = async (data) => {
+  const response = await axiosClient.post('/auth/reset-password', data)
+  return response.data
+}
 
 export default axiosClient;

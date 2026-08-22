@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
-import useWallet from '../hooks/useWallet'
+import { NavLink } from 'react-router-dom'
 
 const icons = {
   grid: <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" />,
@@ -12,7 +11,6 @@ const icons = {
   clock: <path d="M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2" />,
   building: <path d="M3 21h18M6 21V5a1 1 0 011-1h6a1 1 0 011 1v16M6 9h1M6 13h1M11 9h1M11 13h1M14 21v-6h5a1 1 0 011 1v5" />,
   settings: <path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.66.28 1.51.99 1.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />,
-  logout: <path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 00-2-2h-6" />,
 }
 
 function Icon({ name }) {
@@ -25,8 +23,6 @@ function Icon({ name }) {
 
 function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
   const [collapsed, setCollapsed] = useState(false)
-  const navigate = useNavigate()
-  const { disconnect } = useWallet()
   const currentUser = user || { name: 'VeriCargo User', role: 'User' }
   const dashboardPath = currentUser.role?.toLowerCase() === 'carrier' ? '/carrierdashboard' : '/shipperdashboard'
   const isCarrier = currentUser.role?.toLowerCase() === 'carrier'
@@ -45,23 +41,8 @@ function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
           { to: '/shipper/funds', label: 'Funding & refunds', icon: 'wallet' },
           { to: '/shipper/history', label: 'History', icon: 'clock' },
         ] },
-    { label: 'Account', links: [{ to: '/profile', label: 'Profile', icon: 'building' }, { to: '/settings', label: 'Settings', icon: 'settings' }] },
+    { label: 'Account', links: [{ to: '/settings', label: 'Settings', icon: 'settings' }] },
   ]
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    localStorage.removeItem('role')
-    disconnect()
-    navigate('/login', { replace: true })
-  }
-
-  const initials = (currentUser.fullName || currentUser.name || 'User')
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
 
   return (
     <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
@@ -100,19 +81,6 @@ function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
         ))}
       </nav>
 
-      <div className="sidebar__footer">
-        <div className="sidebar__avatar">{initials}</div>
-        {!collapsed && (
-          <div>
-            <div className="sidebar__user-name">{currentUser.fullName || currentUser.name || 'VeriCargo User'}</div>
-            <div className="sidebar__user-role">{currentUser.role || 'User'}</div>
-          </div>
-        )}
-        <button type="button" className="sidebar__logout" onClick={handleLogout} aria-label="Log out" title="Log out">
-          <Icon name="logout" />
-          {!collapsed && <span>Log out</span>}
-        </button>
-      </div>
     </aside>
   )
 }

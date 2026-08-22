@@ -5,22 +5,22 @@
 
 :root {
     /* Core palette — same family as AuthPage, expanded for app-wide use */
-    --page-bg: radial-gradient(circle at top, #4c1d95 0, #1b102f 44%, #090816 100%);
-    --surface-0: #090816;
-    --surface-1: rgba(18, 12, 36, 0.72);
-    --surface-2: rgba(255, 255, 255, 0.05);
-    --surface-3: rgba(255, 255, 255, 0.08);
-    --card-border: rgba(202, 179, 255, 0.18);
-    --card-shadow: 0 28px 80px rgba(18, 9, 45, 0.45);
+    --page-bg: #f4f7f6;
+    --surface-0: #e7efed;
+    --surface-1: rgba(255, 255, 255, 0.96);
+    --surface-2: rgba(8, 127, 140, 0.06);
+    --surface-3: rgba(8, 127, 140, 0.1);
+    --card-border: rgba(25, 50, 60, 0.14);
+    --card-shadow: 0 20px 55px rgba(25, 50, 60, 0.12);
 
-    --text-main: #f5efff;
-    --text-muted: #d4c7ef;
-    --text-soft: rgba(245, 239, 255, 0.72);
-    --text-faint: rgba(245, 239, 255, 0.48);
+    --text-main: #19323c;
+    --text-muted: #55717a;
+    --text-soft: rgba(25, 50, 60, 0.74);
+    --text-faint: rgba(25, 50, 60, 0.5);
 
-    --accent: #b46cff;
-    --accent-strong: #8f35ff;
-    --accent-soft: rgba(180, 108, 255, 0.15);
+    --accent: #20b2aa;
+    --accent-strong: #087f8c;
+    --accent-soft: rgba(8, 127, 140, 0.14);
 
     /* Status colors — used for shipment states */
     --status-transit: #5da8ff;
@@ -78,7 +78,7 @@ body {
     right: -90px;
     width: 320px;
     height: 320px;
-    background: rgba(180, 108, 255, 0.22);
+    background: rgba(21, 154, 156, 0.12);
 }
 
 .app-shell::after {
@@ -86,7 +86,7 @@ body {
     bottom: -110px;
     width: 300px;
     height: 300px;
-    background: rgba(143, 53, 255, 0.16);
+    background: rgba(112, 214, 202, 0.12);
 }
 
 /* ==========================================================================
@@ -100,7 +100,7 @@ body {
     flex-direction: column;
     gap: 28px;
     padding: 24px 18px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    background: rgba(51, 46, 42, 0.96);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(18px);
     transition: width 200ms ease;
@@ -122,14 +122,14 @@ body {
     height: 36px;
     flex-shrink: 0;
     border-radius: 11px;
-    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+    background: var(--accent-strong);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 0.95rem;
     color: #fff;
-    box-shadow: 0 10px 24px rgba(143, 53, 255, 0.35);
+    box-shadow: 0 10px 24px rgba(21, 154, 156, 0.28);
 }
 
 .sidebar__brand-name {
@@ -198,9 +198,9 @@ body {
 }
 
 .sidebar__link.is-active {
-    background: linear-gradient(135deg, rgba(143, 53, 255, 0.28), rgba(180, 108, 255, 0.14));
+    background: rgba(21, 154, 156, 0.28);
     color: #fff;
-    box-shadow: inset 0 0 0 1px rgba(180, 108, 255, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(112, 214, 202, 0.5);
 }
 
 .sidebar__link-badge {
@@ -228,7 +228,7 @@ body {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+    background: var(--accent-strong);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -322,13 +322,13 @@ body {
 
 .btn--primary {
     color: #fff;
-    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
-    box-shadow: 0 14px 28px rgba(143, 53, 255, 0.28);
+    background: var(--accent-strong);
+    box-shadow: 0 14px 28px rgba(21, 154, 156, 0.24);
 }
 
 .btn--primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 16px 32px rgba(143, 53, 255, 0.36);
+    box-shadow: 0 16px 32px rgba(21, 154, 156, 0.3);
 }
 
 .sidebar__logout {
@@ -351,17 +351,87 @@ body {
 .sidebar--collapsed .sidebar__footer { justify-content: center; padding: 10px 4px; flex-direction: column; }
 .sidebar--collapsed .sidebar__logout { margin-left: 0; }
 
+.account-menu { position: relative; }
+.account-menu__trigger { display: grid; place-items: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.account-menu__avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent-strong); color: #fff; font-size: .78rem; font-weight: 800; box-shadow: 0 8px 18px rgba(21, 154, 156, .25); }
+.account-menu__trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 50%; }
+.account-menu__popover { position: absolute; top: calc(100% + 10px); right: 0; z-index: 10; width: 190px; padding: 8px; border: 1px solid var(--card-border); border-radius: 14px; background: rgba(18, 12, 36, .98); box-shadow: 0 18px 42px rgba(0, 0, 0, .35); }
+.account-menu__identity { display: grid; gap: 3px; padding: 9px 10px 11px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.account-menu__identity strong { overflow: hidden; color: var(--text-main); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu__identity span { color: var(--text-faint); font-size: .74rem; text-transform: capitalize; }
+.account-menu__popover button { display: flex; align-items: center; gap: 9px; width: 100%; margin-top: 4px; padding: 10px; border: 0; border-radius: 9px; background: transparent; color: var(--text-soft); text-align: left; font: inherit; font-size: .82rem; cursor: pointer; }
+.account-menu__popover button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.account-menu__popover button:hover { background: var(--surface-2); color: #fff; }
+.account-menu__popover button:hover { color: var(--accent-strong); }
+
+/* Final account menu colors must come after the legacy theme overrides. */
+.account-menu__popover { background: #142b33 !important; border-color: rgba(160, 220, 214, .2) !important; box-shadow: 0 18px 42px rgba(0, 0, 0, .4) !important; }
+.account-menu__identity { border-bottom-color: rgba(160, 220, 214, .16); }
+.account-menu__identity strong { color: #edf9f7 !important; }
+.account-menu__identity span { color: #9bc1be !important; }
+.account-menu__popover button { color: #d9efec !important; }
+.account-menu__popover button:hover { color: #fff !important; background: rgba(112, 214, 202, .14) !important; }
+.profile-form input { background: #0d2028 !important; color: #edf9f7 !important; border-color: rgba(160, 220, 214, .2) !important; }
+.profile-form input::placeholder { color: rgba(237, 249, 247, .58) !important; opacity: 1 !important; }
+.profile-password-field button { color: #a8c7c5 !important; }
+.profile-password-field button:hover { color: #70d6ca !important; }
+
+/* Keep every dashboard surface on the dark teal system. */
+.app-main, .card { color: var(--text-main); }
+.sidebar__footer { background: rgba(112, 214, 202, .08); border-color: var(--card-border); }
+.sidebar__collapse-btn, .icon-btn { color: var(--text-muted); }
+.btn--primary { color: #fff; background: var(--accent-strong); }
+.metamask-button { border-color: rgba(112, 214, 202, .35); background: rgba(21, 154, 156, .18); color: var(--text-main); }
+.metamask-button:hover { background: rgba(21, 154, 156, .3); }
+.profile-form input { background: #0d2028; color: var(--text-main); }
+
+/* Final dark theme */
+:root { --page-bg: #0b151b; --surface-0: #071015; --surface-1: #12232b; --surface-2: rgba(112, 214, 202, .08); --surface-3: rgba(112, 214, 202, .14); --card-border: rgba(160, 220, 214, .2); --card-shadow: 0 20px 55px rgba(0, 0, 0, .35); --text-main: #edf9f7; --text-muted: #a8c7c5; --text-soft: rgba(237, 249, 247, .74); --text-faint: rgba(237, 249, 247, .5); --accent: #70d6ca; --accent-strong: #159a9c; --accent-soft: rgba(112, 214, 202, .18); }
+body { background: var(--page-bg); color: var(--text-main); }
+.app-shell::before, .app-shell::after { display: none; }
+.sidebar { background: #0d242d; border-color: rgba(160, 220, 214, .16); }
+.sidebar__section-label { color: #7fa9a8; }
+.sidebar__link { color: #c6e1df; }
+.sidebar__link:hover { background: rgba(112, 214, 202, .1); color: #fff; }
+.sidebar__link.is-active { background: rgba(21, 154, 156, .3); box-shadow: inset 0 0 0 1px rgba(112, 214, 202, .5); }
+.sidebar__brand-mark, .account-menu__avatar { background: var(--accent-strong); box-shadow: 0 10px 24px rgba(21, 154, 156, .3); }
+.sidebar__brand-name, .sidebar__user-name { color: #edf9f7; }
+.sidebar__user-role { color: #9bc1be; }
+.icon-btn { background: rgba(112, 214, 202, .08); border-color: var(--card-border); color: var(--text-muted); }
+.icon-btn:hover { background: rgba(112, 214, 202, .16); color: #fff; }
+.btn--primary { background: var(--accent-strong); box-shadow: 0 14px 28px rgba(21, 154, 156, .3); }
+.account-menu__popover { background: #142b33; box-shadow: 0 18px 42px rgba(0, 0, 0, .4); }
+.account-menu__popover button { color: #d9efec; }
+.account-menu__popover button:hover { color: #fff; background: rgba(112, 214, 202, .14); }
+.profile-form input { background: #0d2028; color: var(--text-main); }
+.account-menu__popover button:last-child:hover { color: var(--status-issue); background: var(--status-issue-bg); }
+
 .btn:disabled { cursor: not-allowed; opacity: 0.48; transform: none; box-shadow: none; }
 .wallet-connect { position: relative; }
-.metamask-button { min-height: 42px; display: inline-flex; align-items: center; gap: 9px; padding: 9px 14px; border: 1px solid rgba(246, 133, 27, 0.45); border-radius: var(--radius-sm); background: rgba(246, 133, 27, 0.12); color: var(--text-main); font: inherit; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
-.metamask-button:hover { background: rgba(246, 133, 27, 0.2); }
+.metamask-button { min-height: 42px; display: inline-flex; align-items: center; gap: 9px; padding: 9px 14px; border: 1px solid rgba(112, 214, 202, 0.35); border-radius: var(--radius-sm); background: rgba(21, 154, 156, 0.18); color: var(--text-main); font: inherit; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
+.metamask-button:hover { background: rgba(21, 154, 156, 0.3); }
 .metamask-button:disabled { cursor: wait; opacity: 0.65; }
+.metamask-button { background: #ffb45e !important; border-color: #e99a3f !important; color: #2b1b0c !important; }
+.metamask-button:hover { background: #f3a34b !important; color: #2b1b0c !important; }
 .metamask-icon { width: 22px; height: 22px; }
 .metamask-status { margin: 8px 0 0; font-size: 0.76rem; }
 .metamask-status--error { color: var(--status-issue); }
 .wallet-connect--topbar .metamask-status { position: absolute; right: 0; width: 260px; text-align: right; }
 .profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .profile-card h2 { margin: 8px 0 18px; }
+.profile-form { display: grid; gap: 14px; }
+.profile-form label { display: grid; gap: 7px; color: var(--text-soft); font-size: .8rem; font-weight: 600; }
+.profile-form input { width: 100%; border: 1px solid var(--card-border); border-radius: 10px; background: rgba(9, 8, 22, .52); color: var(--text-main); padding: 11px 12px; font: inherit; outline: none; }
+.profile-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.profile-card__heading-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.profile-card__heading-row h2 { margin-bottom: 0; }
+.profile-password-field { position: relative; display: flex; align-items: center; }
+.profile-password-field input { padding-right: 44px; }
+.profile-password-field button { position: absolute; right: 9px; display: grid; place-items: center; padding: 5px; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; }
+.profile-password-field button:hover { color: #fff; }
+.profile-password-field button svg { width: 18px; height: 18px; }
+.form-message--success { color: var(--status-delivered); }
+.form-message--error { color: var(--status-issue); }
 .profile-card__eyebrow { color: var(--accent); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .profile-card__copy { color: var(--text-soft); line-height: 1.6; }
 .profile-details { margin: 0; }
@@ -494,3 +564,46 @@ body {
     .app-topbar__actions { flex-wrap: wrap; }
     .profile-grid { grid-template-columns: 1fr; }
 }
+
+/* Sand + Terracotta theme overrides */
+body { background: var(--page-bg); }
+.app-shell::before, .app-shell::after { display: none; }
+.sidebar { background: #332e2a; border-right-color: rgba(255, 255, 255, 0.12); }
+.sidebar__section-label { color: #d5c5b7; }
+.sidebar__link { color: #e9ddd2; }
+.sidebar__link:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.sidebar__link.is-active { background: rgba(21, 154, 156, 0.3); box-shadow: inset 0 0 0 1px rgba(112, 214, 202, 0.5); }
+.sidebar__brand-mark, .account-menu__avatar { background: var(--accent-strong); box-shadow: 0 10px 24px rgba(21, 154, 156, 0.28); }
+.sidebar__brand-name, .sidebar__user-name { color: #fff7f0; }
+.btn--primary { background: var(--accent-strong); box-shadow: 0 14px 28px rgba(21, 154, 156, 0.3); }
+.account-menu__popover { background: #fff; box-shadow: 0 18px 42px rgba(51, 46, 42, 0.2); }
+.account-menu__popover button { color: var(--text-main); }
+.profile-form input { background: #0d2028; }
+.sidebar__collapse-btn { color: #d5c5b7; }
+.sidebar__collapse-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+.sidebar__user-role { color: #cbb8aa; }
+.icon-btn { color: #6b625b; background: rgba(51, 46, 42, 0.06); border-color: rgba(51, 46, 42, 0.12); }
+.icon-btn:hover { color: var(--accent); background: rgba(112, 214, 202, 0.14); }
+
+/* Teal + Graphite theme */
+body { background: var(--page-bg); }
+.sidebar { background: #19323c; }
+.sidebar__section-label { color: #a8cbd0; }
+.sidebar__link { color: #d8edef; }
+.sidebar__link:hover { background: rgba(32, 178, 170, 0.12); color: #fff; }
+.sidebar__link.is-active { background: rgba(8, 127, 140, 0.3); box-shadow: inset 0 0 0 1px rgba(32, 178, 170, 0.55); }
+.sidebar__brand-mark, .account-menu__avatar { background: var(--accent-strong); box-shadow: 0 10px 24px rgba(8, 127, 140, 0.28); }
+.btn--primary { background: var(--accent-strong); box-shadow: 0 14px 28px rgba(8, 127, 140, 0.24); }
+.account-menu__popover { background: #fff; box-shadow: 0 18px 42px rgba(25, 50, 60, 0.2); }
+.account-menu__popover button { color: var(--text-main); }
+.account-menu__popover button:hover { color: var(--accent-strong); background: var(--accent-soft); }
+.profile-form input { background: #0d2028; }
+.account-menu__popover button:hover { color: var(--accent-strong); }
+
+/* Account menu final appearance */
+.account-menu__popover { background: #142b33 !important; border-color: rgba(160, 220, 214, .2) !important; box-shadow: 0 18px 42px rgba(0, 0, 0, .4) !important; }
+.account-menu__identity { border-bottom-color: rgba(160, 220, 214, .16); }
+.account-menu__identity strong { color: #edf9f7 !important; }
+.account-menu__identity span { color: #9bc1be !important; }
+.account-menu__popover button { color: #d9efec !important; }
+.account-menu__popover button:hover { color: #fff !important; background: rgba(112, 214, 202, .14) !important; }

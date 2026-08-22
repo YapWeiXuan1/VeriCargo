@@ -58,4 +58,30 @@ const loginUser = async (email, password, rememberMe) => {
     }
 }
 
-module.exports = { registerUser, loginUser }  
+const updateProfile = async (userId, fullName, email) => {
+    const { data, error } = await supabase
+        .from('users')
+        .update({ full_name: fullName, company_email: email })
+        .eq('id', userId)
+        .select()
+        .single()
+
+    if (error) throw new Error(error.message)
+    return { id: data.id, fullName: data.full_name, email: data.company_email, role: data.role }
+}
+
+const resetPassword = async (userId, currentPassword, newPassword) => {
+    const { data: user, error: lookupError } = await supabase.from('users').select('password').eq('id', userId).single()
+    if (lookupError || !user) throw new Error('User not found')
+    if (!await bcrypt.compare(currentPassword, user.password)) {
+        const error = new Error('Current password is incorrect')
+        error.statusCode = 400
+        throw error
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    const { error } = await supabase.from('users').update({ password: hashedPassword }).eq('id', userId)
+    if (error) throw new Error(error.message)
+}
+
+module.exports = { registerUser, loginUser, updateProfile, resetPassword }

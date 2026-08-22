@@ -2,8 +2,8 @@
   font-family: Inter, 'Segoe UI', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #f5efff;
-  background: #090816;
+  color: #edf9f7;
+  background: #0b151b;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -23,7 +23,7 @@ body,
 body {
   margin: 0;
   min-width: 320px;
-  background: #090816;
+  background: #0b151b;
   overflow-y: auto;
 }
 
