@@ -4,7 +4,10 @@ import Sidebar from './Sidebar'
 import useWallet from '../hooks/useWallet'
 
 function getStoredUser() {
-  try { return JSON.parse(localStorage.getItem('user')) ?? undefined } catch { return undefined }
+  try {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
+    return storedUser ? JSON.parse(storedUser) : undefined
+  } catch { return undefined }
 }
 
 function AppLayout({ title, subtitle, actions, children }) {

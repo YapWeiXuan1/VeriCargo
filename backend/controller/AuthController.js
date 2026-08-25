@@ -1,4 +1,3 @@
-const supabase = require('../services/supabaseClient')
 const authService = require('../services/authService');
 
 exports.register = async (req, res) => {
@@ -53,5 +52,14 @@ exports.resetPassword = async (req, res) => {
         res.status(200).json({ message: 'Password reset successfully' })
     } catch (error) {
         res.status(error.statusCode || 500).json({ message: error.message || 'Unable to reset password' })
+    }
+}
+
+exports.searchCarriers = async (req, res) => {
+    try {
+        const carriers = await authService.searchCarriers(req.query.search || '')
+        res.status(200).json({ carriers })
+    } catch (error) {
+        res.status(500).json({ message: error.message || 'Unable to search carriers' })
     }
 }

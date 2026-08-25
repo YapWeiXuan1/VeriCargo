@@ -13,13 +13,14 @@ export function Popup({
   actionLabel,
   onAction,
   onClose,
-  autoCloseMs = 3500,
+  autoCloseMs = 0,
 }) {
   const content = statusContent[variant] || statusContent.success
   const hasAction = Boolean(actionLabel && onAction)
+  const showCloseButton = Boolean(onClose)
 
   useEffect(() => {
-    if (hasAction || !autoCloseMs) return undefined
+    if (!onClose || hasAction || !autoCloseMs) return undefined
     const timer = setTimeout(onClose, autoCloseMs)
     return () => clearTimeout(timer)
   }, [autoCloseMs, hasAction, onClose])
@@ -27,7 +28,7 @@ export function Popup({
   return (
     <div className="app-popup__backdrop" role="presentation">
       <section className={`app-popup app-popup--${variant}`} role="dialog" aria-modal="true" aria-labelledby="app-popup-title">
-        {onClose && <button className="app-popup__close" type="button" onClick={onClose} aria-label="Close popup">&times;</button>}
+        {showCloseButton && <button className="app-popup__close" type="button" onClick={onClose} aria-label="Close popup">&times;</button>}
         <div className="app-popup__icon" aria-hidden="true">{content.icon}</div>
         <span className="app-popup__eyebrow">{content.eyebrow}</span>
         <h2 id="app-popup-title">{title || content.title}</h2>

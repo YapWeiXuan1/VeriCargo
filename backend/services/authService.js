@@ -84,4 +84,30 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
     if (error) throw new Error(error.message)
 }
 
-module.exports = { registerUser, loginUser, updateProfile, resetPassword }
+const searchCarriers = async (search = '') => {
+    const { data, error } = await supabase
+        .from('users')
+        .select('id, full_name, company_email, wallet_address')
+        .ilike('role', 'carrier')
+        .not('wallet_address', 'is', null)
+        .limit(100)
+
+    if (error) throw new Error(error.message)
+
+    const query = search.trim().toLowerCase()
+    return data
+        .filter((carrier) => !query || [
+            carrier.full_name,
+            carrier.company_email,
+            carrier.wallet_address,
+        ].some((value) => value?.toLowerCase().includes(query)))
+        .slice(0, 10)
+        .map((carrier) => ({
+            id: carrier.id,
+            companyName: carrier.full_name,
+            email: carrier.company_email,
+            walletAddress: carrier.wallet_address.toLowerCase(),
+        }))
+}
+
+module.exports = { registerUser, loginUser, updateProfile, resetPassword, searchCarriers }

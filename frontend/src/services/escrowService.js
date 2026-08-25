@@ -15,6 +15,7 @@ export const ESCROW_ABI = [
   'function getCarrierAgreements(address carrier) view returns (uint256[])',
   'function getVerificationDeadline(uint256 agreementId,uint256 milestoneIndex) view returns (uint256)',
   'function isProofPending(uint256 agreementId,uint256 milestoneIndex) view returns (bool)',
+  'function proofHashes(uint256 agreementId,uint256 milestoneIndex) view returns (bytes32)',
 ]
 
 export const STATUS_NAMES = ['Pending', 'Funded', 'In progress', 'Completed', 'Refunded']
@@ -44,7 +45,7 @@ export async function loadAgreements(account, role) {
     : await contract.getShipperAgreements(account)
   return Promise.all(ids.map(async (rawId) => {
     const data = await contract.getAgreement(rawId)
-    const milestones = data.milestones.map((item, index) => ({
+    const milestones = await Promise.all(data.milestones.map(async (item, index) => ({
       index,
       description: item.description,
       percent: Number(item.percent),
@@ -52,7 +53,8 @@ export async function loadAgreements(account, role) {
       rejected: item.rejected,
       proofSubmittedAt: Number(item.proofSubmittedAt),
       verifiedAt: Number(item.verifiedAt),
-    }))
+      proofHash: item.proofSubmittedAt ? await contract.proofHashes(rawId, index) : null,
+    })))
     return {
       id: Number(rawId), shipper: data.shipper, carrier: data.carrier,
       totalValue: data.totalValue, totalEth: formatEther(data.totalValue),

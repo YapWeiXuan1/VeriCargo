@@ -6,6 +6,7 @@ import MetaMaskConnectButton from '../components/metaMaskConnectButton'
 import useWallet from '../hooks/useWallet'
 import { resetPassword, updateProfile } from '../services/axiosClient'
 import { EyeIcon, EyeOffIcon } from '../components/icons'
+import { Popup } from '../components/Popup'
 
 function getUser() {
   try {
@@ -25,14 +26,15 @@ function Profile() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const { account, isConnected } = useWallet()
+  const { account, isConnected, linkedAddress } = useWallet()
 
   const saveProfile = async (event) => {
     event.preventDefault(); setMessage(''); setError(''); setSaving(true)
     try {
       const response = await updateProfile(profileForm)
       setUser(response.user)
-      localStorage.setItem('user', JSON.stringify(response.user))
+      const storage = localStorage.getItem('token') ? localStorage : sessionStorage
+      storage.setItem('user', JSON.stringify(response.user))
       setEditing(false); setMessage('Profile updated successfully.')
     } catch (err) { setError(err.response?.data?.message || 'Unable to update profile.') }
     finally { setSaving(false) }
@@ -69,7 +71,12 @@ function Profile() {
           <MetaMaskConnectButton className="wallet-connect wallet-connect--profile" />
           
           <div className={`wallet-state ${isConnected ? 'wallet-state--connected' : ''}`}>
-            <span aria-hidden="true" />{isConnected ? account : 'No wallet connected'}
+            <span aria-hidden="true" />
+            {isConnected
+              ? account
+              : account && linkedAddress
+                ? 'Wrong MetaMask account selected'
+                : 'No wallet connected'}
           </div>
         </section>
         <section className="card profile-card">
@@ -85,8 +92,8 @@ function Profile() {
           </form>}
         </section>
       </div>
-      {message && <p className="form-message form-message--success">{message}</p>}
-      {error && <p className="form-message form-message--error">{error}</p>}
+      {message && <Popup variant="success" message={message} onClose={() => setMessage('')} />}
+      {error && <Popup variant="error" message={error} onClose={() => setError('')} />}
     </AppLayout>
   )
 }

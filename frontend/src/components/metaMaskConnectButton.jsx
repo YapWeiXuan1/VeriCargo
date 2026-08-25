@@ -1,30 +1,62 @@
 import useWallet from '../hooks/useWallet'
+import { Popup } from './Popup'
 
-function MetaMaskConnectButton({ className = '', label = 'Connect to MetaMask' }) {
-  const { account, error, loading, connect } = useWallet()
+function MetaMaskConnectButton({ className = '' }) {
+  const {
+    account,
+    linkedAddress,
+    accountMatches,
+    loading,
+    linking,
+    error,
+    message,
+    clearWalletNotice,
+    linkWallet,
+  } = useWallet()
+
+  let buttonText = 'Sign to connect MetaMask'
+
+  if (linking) {
+    buttonText = 'Sign in MetaMask...'
+  } else if (accountMatches) {
+    buttonText =
+      `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
+  } else if (account && linkedAddress) {
+    buttonText = 'Wrong MetaMask account'
+  } else if (linkedAddress) {
+    buttonText = 'Sign in with registered wallet'
+  }
 
   return (
-    <div className={className}>
+    <div className={`wallet-connect ${className}`.trim()}>
       <button
-        className="metamask-button"
         type="button"
-        onClick={connect}
+        className="metamask-button"
+        onClick={() => {
+          void linkWallet().catch(() => {
+            // The provider stores and renders the error for the user.
+          })
+        }}
         disabled={loading}
       >
-        <img
-          src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg"
-          alt="MetaMask"
-          className="metamask-icon"
-        />
-        {loading
-          ? 'Connecting...'
-          : account
-            ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
-            : label}
+        {buttonText}
       </button>
 
-      {error ? <p className="metamask-status metamask-status--error">{error}</p> : null}
-
+      {message && (
+        <Popup
+          variant="success"
+          title="MetaMask connected"
+          message={message}
+          onClose={clearWalletNotice}
+        />
+      )}
+      {error && (
+        <Popup
+          variant="error"
+          message={error}
+          onClose={clearWalletNotice}
+        />
+      )}
     </div>
   )
 }
