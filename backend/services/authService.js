@@ -26,13 +26,8 @@ const registerUser = async (email, password, fullName, role) => {
         err.statusCode = 500
         throw err
     }
-    const token = jwt.sign({ id: data.id, email: data.email }, process.env.JWT_SECRET, {
-        expiresIn: '7d',
-    })
-
     return {
-        token,
-        user: { id: data.id, fullName: data.full_name, email: data.email, role: data.role },
+        user: { id: data.id, fullName: data.full_name, email: data.company_email, role: data.role },
     }
 }
 
@@ -50,7 +45,15 @@ const loginUser = async (email, password, rememberMe) => {
         error.statusCode = 401
         throw error
     }
-    const token = jwt.sign({ id: user.id, email: user.company_email }, process.env.JWT_SECRET, { expiresIn: rememberMe ? '30d' : '1d' } )
+    const token = jwt.sign(
+        { sub: user.id, email: user.company_email, role: user.role },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: rememberMe ? '30d' : '1d',
+            issuer: 'vericargo-api',
+            audience: 'vericargo-web',
+        }
+    )
 
     return {
         token,
@@ -84,6 +87,20 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
     if (error) throw new Error(error.message)
 }
 
+const getUserById = async (userId) => {
+    const { data, error } = await supabase
+        .from('users')
+        .select('id, full_name, company_email, role')
+        .eq('id', userId)
+        .single()
+    if (error || !data) {
+        const authError = new Error('User not found')
+        authError.statusCode = 404
+        throw authError
+    }
+    return { id: data.id, fullName: data.full_name, email: data.company_email, role: data.role }
+}
+
 const searchCarriers = async (search = '') => {
     const { data, error } = await supabase
         .from('users')
@@ -110,4 +127,4 @@ const searchCarriers = async (search = '') => {
         }))
 }
 
-module.exports = { registerUser, loginUser, updateProfile, resetPassword, searchCarriers }
+module.exports = { registerUser, loginUser, getUserById, updateProfile, resetPassword, searchCarriers }

@@ -2,9 +2,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loginUser } from '../services/axiosClient'
+import { useAuth } from '../context/auth'
 
 export function useLoginForm() {
   const navigate = useNavigate()
+  const { setUser } = useAuth()
 
   const [formData, setFormData] = useState({
     email: '',
@@ -52,14 +54,10 @@ export function useLoginForm() {
         password: formData.password,
         rememberMe: formData.rememberMe,
       })
-      const { token, user } = res.data
-      if (formData.rememberMe) {
-        localStorage.setItem('token', token)
-        localStorage.setItem('user', JSON.stringify(user))
-      } else {
-        sessionStorage.setItem('token', token)
-        sessionStorage.setItem('user', JSON.stringify(user))
-      }
+      const { user } = res.data
+      // Store only the persistence preference, never the user or auth token.
+      sessionStorage.setItem('vericargo_remember', formData.rememberMe ? '1' : '0')
+      setUser(user)
       if (user.role === 'shipper') {
         navigate('/shipperdashboard')
       } else {

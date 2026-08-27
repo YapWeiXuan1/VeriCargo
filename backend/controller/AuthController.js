@@ -1,5 +1,21 @@
 const authService = require('../services/authService');
 
+const sessionCookieOptions = (rememberMe = false) => {
+    const options = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+    }
+    // Without maxAge the browser removes the cookie when the session ends.
+    if (rememberMe) {
+        const thirtyDays = 30 * 24 * 60 * 60 * 1000
+        options.maxAge = thirtyDays
+        options.expires = new Date(Date.now() + thirtyDays)
+    }
+    return options
+};
+
 exports.register = async (req, res) => {
     try {
         const { email, password, fullName, role } = req.body;
@@ -8,9 +24,9 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: 'Missing required fields' });
         }
         const result = await authService.registerUser(email, password, fullName, role);
-        res.status(201).json({ message: 'User registered successfully', data: result });
+        res.status(201).json({ message: 'User registered successfully', data: { user: result.user } });
     } catch (error) {
-        res.status(500).json({ message: 'Error registering user', error: error.message });
+        res.status(error.statusCode || 500).json({ message: error.message || 'Error registering user' });
     }
 
 }
@@ -24,10 +40,11 @@ exports.login = async (req, res) => {
         }
 
         const result = await authService.loginUser(email, password, rememberMe);
-        res.status(200).json({ message: 'User logged in successfully', data: result });
+        res.cookie('vericargo_session', result.token, sessionCookieOptions(Boolean(rememberMe)));
+        res.status(200).json({ message: 'User logged in successfully', data: { user: result.user } });
 
     } catch (error) {
-        res.status(500).json({ message: 'Error logging in user', error: error.message });
+        res.status(error.statusCode || 500).json({ message: error.message || 'Error logging in user' });
     }
 
 }
@@ -52,6 +69,19 @@ exports.resetPassword = async (req, res) => {
         res.status(200).json({ message: 'Password reset successfully' })
     } catch (error) {
         res.status(error.statusCode || 500).json({ message: error.message || 'Unable to reset password' })
+    }
+}
+
+exports.logout = (req, res) => {
+    res.clearCookie('vericargo_session', sessionCookieOptions(false));
+    res.status(204).send();
+}
+
+exports.me = async (req, res) => {
+    try {
+        res.status(200).json({ user: await authService.getUserById(req.user.id) })
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message || 'Unable to load session' })
     }
 }
 

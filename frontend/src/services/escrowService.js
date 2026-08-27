@@ -22,6 +22,19 @@ export const STATUS_NAMES = ['Pending', 'Funded', 'In progress', 'Completed', 'R
 export function shortAddress(value) { return `${value.slice(0, 6)}…${value.slice(-4)}` }
 export function dateTime(seconds) { return seconds ? new Date(seconds * 1000).toLocaleString() : '—' }
 
+export function formatEthValue(wei, maximumDecimals = 6) {
+  const value = formatEther(wei || 0n)
+  const [whole, fraction = ''] = value.split('.')
+  const trimmed = fraction.slice(0, maximumDecimals).replace(/0+$/, '')
+  if (BigInt(wei || 0n) > 0n && whole === '0' && !trimmed) return `<0.${'0'.repeat(maximumDecimals - 1)}1`
+  return trimmed ? `${whole}.${trimmed}` : whole
+}
+
+export async function loadWalletBalance(account) {
+  if (!account || !window.ethereum) return 0n
+  return new BrowserProvider(window.ethereum).getBalance(account)
+}
+
 async function getContract(write = false) {
   if (!window.ethereum) throw new Error('MetaMask is required to use the escrow contract.')
   if (!CONTRACT_ADDRESS) throw new Error('VITE_CONTRACT_ADDRESS is not configured.')

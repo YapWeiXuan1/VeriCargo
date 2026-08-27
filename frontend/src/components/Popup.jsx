@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 const statusContent = {
   success: { eyebrow: 'Success', title: 'Everything is ready', icon: '✓' },
@@ -25,7 +26,7 @@ export function Popup({
     return () => clearTimeout(timer)
   }, [autoCloseMs, hasAction, onClose])
 
-  return (
+  return createPortal(
     <div className="app-popup__backdrop" role="presentation">
       <section className={`app-popup app-popup--${variant}`} role="dialog" aria-modal="true" aria-labelledby="app-popup-title">
         {showCloseButton && <button className="app-popup__close" type="button" onClick={onClose} aria-label="Close popup">&times;</button>}
@@ -35,7 +36,8 @@ export function Popup({
         {message && <p>{message}</p>}
         {hasAction && <button className="app-popup__action" type="button" onClick={onAction}>{actionLabel}</button>}
       </section>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -47,7 +49,7 @@ export function ConfirmPopup({
   onConfirm,
   onCancel,
 }) {
-  return (
+  return createPortal(
     <div className="app-popup__backdrop" role="presentation">
       <section className="app-popup app-popup--confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-popup-title">
         <div className="app-popup__icon" aria-hidden="true">?</div>
@@ -59,6 +61,7 @@ export function ConfirmPopup({
           <button className="app-popup__action" type="button" onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -58,10 +58,10 @@ function ProofImage({ proofHash, agreementId, milestoneIndex }) {
   return <img className="proof-image" src={imageUrl} alt="Carrier submitted proof" />
 }
 
-function AgreementTable({ agreements, role, actions }) {
+function AgreementTable({ agreements, role, actions, footer }) {
   return <div className="card table-card"><table className="ship-table"><thead><tr><th>Agreement</th><th>{role === 'carrier' ? 'Shipper' : 'Carrier'}</th><th>Value</th><th>Progress</th><th>Deadline</th><th>Status</th>{actions && <th>Action</th>}</tr></thead><tbody>
     {agreements.map((a) => <tr key={a.id}><td className="ship-table__id">#{a.id}</td><td>{shortAddress(role === 'carrier' ? a.shipper : a.carrier)}</td><td>{a.totalEth} ETH</td><td>{a.verifiedMilestoneCount}/{a.milestones.length}</td><td>{dateTime(a.deadline)}</td><td><StatusPill status={a.status} /></td>{actions && <td>{actions(a)}</td>}</tr>)}
-  </tbody></table></div>
+  </tbody></table>{footer}</div>
 }
 
 export function ShipperAgreements() {
@@ -124,7 +124,7 @@ export function ShipperAgreements() {
       {formError && <p className="form-message form-message--error">{formError}</p>}
       <button className="btn btn--primary" disabled={!data.isConnected || tx.busy || !selectedCarrier}>Create on Sepolia</button>{tx.message && <p className="form-message">{tx.message}</p>}
     </form></div>
-    <PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />{data.agreements.length > 0 && <AgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="shipper" />}
+    <PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />{data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="shipper" pageSize={5} />}
   </Page>
 }
 
@@ -139,11 +139,11 @@ export function ShipperReview() {
 export function ShipperFunds() {
   const data = useAgreements('shipper'); const tx = useTransaction(data.refresh); const [now] = useState(() => Date.now() / 1000)
   return <Page title="Funding & refunds" subtitle="Fund pending agreements or recover unreleased escrow after the deadline."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />
-    {data.agreements.length > 0 && <AgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="shipper" actions={(a) => a.status === 0 ? <button className="btn btn--compact btn--primary" disabled={tx.busy} onClick={() => tx.run(`f-${a.id}`, () => escrowActions.fund(a.id, a.totalValue))}>Fund {a.totalEth} ETH</button> : (a.deadline < now && a.pendingProofCount === 0 && a.fundedAmount > a.releasedAmount && a.status < 3) ? <button className="btn btn--compact btn--secondary" disabled={tx.busy} onClick={() => tx.run(`refund-${a.id}`, () => escrowActions.refund(a.id))}>Refund remainder</button> : <span className="muted-copy">No action available</span>} />}{tx.message && <p className="form-message">{tx.message}</p>}
+    {data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="shipper" actions={(a) => a.status === 0 ? <button className="btn btn--compact btn--primary" disabled={tx.busy} onClick={() => tx.run(`f-${a.id}`, () => escrowActions.fund(a.id, a.totalValue))}>Fund {a.totalEth} ETH</button> : (a.deadline < now && a.pendingProofCount === 0 && a.fundedAmount > a.releasedAmount && a.status < 3) ? <button className="btn btn--compact btn--secondary" disabled={tx.busy} onClick={() => tx.run(`refund-${a.id}`, () => escrowActions.refund(a.id))}>Refund remainder</button> : <span className="muted-copy">No action available</span>} />}{tx.message && <p className="form-message">{tx.message}</p>}
   </Page>
 }
 
-export function CarrierAgreements() { const data = useAgreements('carrier'); return <Page title="Assigned agreements" subtitle="Review escrow terms, milestones, values, and delivery deadlines."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />{data.agreements.length > 0 && <AgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="carrier" />}</Page> }
+export function CarrierAgreements() { const data = useAgreements('carrier'); return <Page title="Assigned agreements" subtitle="Review escrow terms, milestones, values, and delivery deadlines."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />{data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="carrier" pageSize={5} />}</Page> }
 
 export function CarrierProofs() {
   const data = useAgreements('carrier')
@@ -161,10 +161,20 @@ export function CarrierProofs() {
   })}</div>{tx.message && <p className="form-message">{tx.message}</p>}</Page>
 }
 
+function PaginatedAgreementTable({ agreements, role, actions, pageSize = 20 }) {
+  const [page, setPage] = useState(1)
+  const ordered = [...agreements].sort((a, b) => b.id - a.id)
+  const pageCount = Math.max(1, Math.ceil(ordered.length / pageSize))
+  const visible = ordered.slice((page - 1) * pageSize, page * pageSize)
+  useEffect(() => { if (page > pageCount) setPage(pageCount) }, [page, pageCount])
+  const footer = <div className="payment-pagination table-pagination"><span>Showing {visible.length} of {ordered.length} agreements</span><div><button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</button><span>Page {page} of {pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => setPage((current) => current + 1)}>Next</button></div></div>
+  return <AgreementTable agreements={visible} role={role} actions={actions} footer={footer} />
+}
+
 export function CarrierClaims() {
   const data = useAgreements('carrier'); const tx = useTransaction(data.refresh); const [now] = useState(() => Date.now() / 1000)
   const items = data.agreements.flatMap((a) => a.milestones.filter((m) => m.index === a.nextVerificationIndex && m.proofSubmittedAt && !m.verified && !m.rejected && now > m.proofSubmittedAt + 259200).map((m) => ({ a, m })))
   return <Page title="Timeout claims" subtitle="Claim milestone payment when the three-day shipper review period has elapsed."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!items.length} /><div className="item-grid">{items.map(({ a, m }) => <article className="card action-card" key={`${a.id}-${m.index}`}><span className="card-kicker">Agreement #{a.id}</span><h2>{m.description}</h2><p>The review window ended {dateTime(m.proofSubmittedAt + 259200)}.</p><button className="btn btn--primary" disabled={tx.busy} onClick={() => tx.run(`c-${a.id}`, () => escrowActions.claim(a.id, m.index))}>Claim {m.percent}% payment</button></article>)}</div>{tx.message && <p className="form-message">{tx.message}</p>}</Page>
 }
 
-export function AgreementHistory({ role }) { const data = useAgreements(role); const history = data.agreements.filter((a) => a.status >= 3); return <Page title="Agreement history" subtitle="Completed and refunded agreements recorded by the deployed escrow contract."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!history.length} />{history.length > 0 && <AgreementTable agreements={history} role={role} />}</Page> }
+export function AgreementHistory({ role }) { const data = useAgreements(role); const history = data.agreements.filter((a) => a.status >= 3); return <Page title="Agreement history" subtitle="Completed and refunded agreements recorded by the deployed escrow contract."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!history.length} />{history.length > 0 && <PaginatedAgreementTable agreements={history} role={role} />}</Page> }

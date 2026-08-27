@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 const icons = {
@@ -22,7 +21,6 @@ function Icon({ name }) {
 }
 
 function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
-  const [collapsed, setCollapsed] = useState(false)
   const currentUser = user || { name: 'VeriCargo User', role: 'User' }
   const dashboardPath = currentUser.role?.toLowerCase() === 'carrier' ? '/carrierdashboard' : '/shipperdashboard'
   const isCarrier = currentUser.role?.toLowerCase() === 'carrier'
@@ -41,40 +39,23 @@ function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
           { to: '/shipper/funds', label: 'Funding & refunds', icon: 'wallet' },
           { to: '/shipper/history', label: 'History', icon: 'clock' },
         ] },
-    { label: 'Account', links: [{ to: '/settings', label: 'Settings', icon: 'settings' }] },
+    { label: 'Account', links: [{ to: '/wallet', label: 'Wallet', icon: 'wallet' }, { to: '/settings', label: 'Settings', icon: 'settings' }] },
   ]
 
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
-      <div className="sidebar__brand">
-        <div className="sidebar__brand-mark">VC</div>
-        {!collapsed && <span className="sidebar__brand-name">VeriCargo</span>}
-        <button
-          type="button"
-          className="sidebar__collapse-btn"
-          onClick={() => setCollapsed((c) => !c)}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            {collapsed ? <path d="M9 18l6-6-6-6" /> : <path d="M15 18l-6-6 6-6" />}
-          </svg>
-        </button>
-      </div>
-
+    <aside className="sidebar">
       <nav className="sidebar__nav">
         {navSections.map((section) => (
           <div key={section.label}>
-            {!collapsed && <div className="sidebar__section-label">{section.label}</div>}
+            <div className="sidebar__section-label">{section.label}</div>
             {section.links.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to === '/dashboard' ? dashboardPath : link.to}
                 className={({ isActive }) => `sidebar__link ${isActive ? 'is-active' : ''}`}
-                title={collapsed ? link.label : undefined}
               >
                 <Icon name={link.icon} />
-                {!collapsed && <span>{link.label}</span>}
-                {!collapsed && link.badge && <span className="sidebar__link-badge">{link.badge}</span>}
+                <span>{link.label}</span>
               </NavLink>
             ))}
           </div>

@@ -4,22 +4,27 @@ import RegisterPage from '../pages/RegisterPage.jsx'
 import ShipperDashboard from '../pages/ShipperDashboard.jsx'
 import CarrierDashboard from '../pages/CarrierDashboard.jsx'
 import Profile from '../pages/profile.jsx'
+import WalletPage from '../pages/WalletPage.jsx'
 import PlaceholderPage from '../pages/PlaceholderPage.jsx'
 import { AgreementHistory, CarrierAgreements, CarrierClaims, CarrierProofs, ShipperAgreements, ShipperFunds, ShipperReview } from '../pages/EscrowPages.jsx'
-import { isLoggedIn, getUserRole } from '../context/auth'
+import { useAuth } from '../context/auth'
 
 function ProtectedRoute({ children }) {
-    return isLoggedIn() ? children : <Navigate to="/login" replace />
+    const { user } = useAuth()
+    return user ? children : <Navigate to="/login" replace />
 }
 
 function DashboardRedirect() {
-    return <Navigate to={getUserRole() === 'carrier' ? '/carrierdashboard' : '/shipperdashboard'} replace />
+    const { user } = useAuth()
+    return <Navigate to={user?.role?.toLowerCase() === 'carrier' ? '/carrierdashboard' : '/shipperdashboard'} replace />
 }
 
 function AppRoutes() {
+    const { user, loading } = useAuth()
+    if (loading) return <div className="app-loading">Checking your secure session…</div>
     return (
         <Routes>
-            <Route path="/" element={<Navigate to={isLoggedIn() ? '/dashboard' : '/login'} replace />} />
+            <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
@@ -34,11 +39,12 @@ function AppRoutes() {
             <Route path="/carrier/claims" element={<ProtectedRoute><CarrierClaims /></ProtectedRoute>} />
             <Route path="/carrier/history" element={<ProtectedRoute><AgreementHistory role="carrier" /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
             {['shipments', 'tracking', 'carriers', 'documents', 'payments', 'settings'].map((page) => (
                 <Route key={page} path={`/${page}`} element={<ProtectedRoute><PlaceholderPage title={page[0].toUpperCase() + page.slice(1)} /></ProtectedRoute>} />
             ))}
             <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to={isLoggedIn() ? '/dashboard' : '/login'} replace />} />
+            <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
         </Routes>
     )
 }

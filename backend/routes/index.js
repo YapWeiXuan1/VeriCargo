@@ -6,6 +6,8 @@ const walletController = require('../controller/walletController');
 const proofController = require('../controller/proofController');
 router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
+router.post('/auth/logout', authController.logout);
+router.get('/auth/me', requireAuth, authController.me);
 router.put('/auth/profile', requireAuth, authController.updateProfile);
 router.post('/auth/reset-password', requireAuth, authController.resetPassword);
 router.get('/carriers', requireAuth, authController.searchCarriers);

@@ -60,6 +60,7 @@ function LoginPage() {
               value={formData.email}
               onChange={handleChange}
               placeholder="you@company.com"
+              aria-invalid={Boolean(errors.email)}
             />
             {errors.email && <small className="auth-field__error">{errors.email}</small>}
           </label>
@@ -73,6 +74,7 @@ function LoginPage() {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Enter your password"
+                aria-invalid={Boolean(errors.password)}
               />
               <button
                 type="button"

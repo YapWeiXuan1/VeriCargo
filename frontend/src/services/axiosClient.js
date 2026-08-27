@@ -1,23 +1,23 @@
 // src/services/axiosClient.js
 import axios from 'axios';
 
-export function getAuthToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token')
-}
-
 const axiosClient = axios.create({
-  baseURL: 'http://localhost:5000/api', //backend base URL
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-axiosClient.interceptors.request.use((config) => {
-  const token = getAuthToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}` // attach it automatically
-  }
-  return config
-})
+
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      window.dispatchEvent(new Event('vericargo:unauthorized'))
+    }
+    return Promise.reject(error)
+  },
+)
 
 export const registerUser = async (data) => {
   const response = await axiosClient.post('/auth/register', data);
@@ -34,6 +34,13 @@ export const updateProfile = async (data) => {
 export const resetPassword = async (data) => {
   const response = await axiosClient.post('/auth/reset-password', data)
   return response.data
+}
+export const logoutUser = async () => {
+  await axiosClient.post('/auth/logout')
+}
+export const getSession = async () => {
+  const response = await axiosClient.get('/auth/me')
+  return response.data.user
 }
 export const searchCarriers = async (search) => {
   const response = await axiosClient.get('/carriers', { params: { search } })

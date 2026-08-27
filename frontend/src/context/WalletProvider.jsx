@@ -14,20 +14,23 @@ import {
 
 import {
   getWalletStatus,
-  getAuthToken,
   requestWalletChallenge,
   verifyWalletChallenge,
 } from '../services/axiosClient'
 
 import { WalletContext } from './WalletContext'
+import { useAuth } from './auth'
 
 function getErrorMessage(error, fallbackMessage) {
-  return (
+  const candidate = (
     error?.response?.data?.error ||
     error?.response?.data?.message ||
     error?.message ||
     fallbackMessage
   )
+  if (typeof candidate === 'string') return candidate
+  if (candidate && typeof candidate.message === 'string') return candidate.message
+  return fallbackMessage
 }
 
 function normaliseWalletStatus(status) {
@@ -52,6 +55,7 @@ function normaliseWalletStatus(status) {
 }
 
 function WalletProvider({ children }) {
+  const { user } = useAuth()
   // Currently selected MetaMask account
   const [account, setAccount] = useState(null)
 
@@ -178,9 +182,7 @@ function WalletProvider({ children }) {
    * loads, but only if a login token exists.
    */
   useEffect(() => {
-    const token = getAuthToken()
-
-    if (!token) {
+    if (!user) {
       setCheckingWalletStatus(false)
       return
     }
@@ -360,7 +362,7 @@ function WalletProvider({ children }) {
     } finally {
       setLinking(false)
     }
-  }, [refreshWalletStatus])
+  }, [refreshWalletStatus, user])
 
   const linkedAddress =
     walletStatus?.hasLinkedWallet

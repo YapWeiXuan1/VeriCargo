@@ -1,7 +1,10 @@
+import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import useWallet from '../hooks/useWallet'
 import { Popup } from './Popup'
 
 function MetaMaskConnectButton({ className = '' }) {
+  const { pathname } = useLocation()
   const {
     account,
     linkedAddress,
@@ -14,7 +17,11 @@ function MetaMaskConnectButton({ className = '' }) {
     linkWallet,
   } = useWallet()
 
-  let buttonText = 'Sign to connect MetaMask'
+  useEffect(() => {
+    clearWalletNotice()
+  }, [pathname, clearWalletNotice])
+
+  let buttonText = 'Connect MetaMask'
 
   if (linking) {
     buttonText = 'Sign in MetaMask...'
@@ -39,6 +46,7 @@ function MetaMaskConnectButton({ className = '' }) {
         }}
         disabled={loading}
       >
+        <img className="metamask-icon" src="/metamask-logo-pack/MetaMask-Logo-Pack/MetaMask/MetaMask-icon-fox.svg" alt="" />
         {buttonText}
       </button>
 

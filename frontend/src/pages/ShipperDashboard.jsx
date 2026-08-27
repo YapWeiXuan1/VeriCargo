@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout'
 import { ContractNote, PageState, StatusPill, WalletAction } from '../components/AgreementUI'
 import useAgreements from '../hooks/useAgreements'
 import { Link } from 'react-router-dom'
+import { formatEthValue } from '../services/escrowService'
 
 function ShipperDashboard() {
   const data = useAgreements('shipper')
@@ -12,7 +13,7 @@ function ShipperDashboard() {
     { label: 'Active agreements', value: active.length, note: 'Funded or in progress' },
     { label: 'Proofs to review', value: active.filter((a) => a.pendingProofCount > 0).length, note: 'Within the 3-day window' },
     { label: 'Completed', value: data.agreements.filter((a) => a.status === 3).length, note: 'Settled on-chain' },
-    { label: 'Agreement value', value: `${data.agreements.reduce((sum, a) => sum + Number(a.totalEth), 0).toFixed(3)} ETH`, note: 'Across this wallet' },
+    { label: 'Agreement value', value: `${formatEthValue(data.agreements.reduce((sum, a) => sum + a.totalValue, 0n))} ETH`, note: 'Across this wallet' },
   ]
   return <AppLayout title="Shipper dashboard" subtitle="A live summary of your Sepolia escrow activity." actions={<><WalletAction /><Link className="btn btn--primary" to="/shipper/agreements">New agreement</Link></>}>
     <ContractNote /><PageState loading={data.loading} error={data.error} connected={data.isConnected} />

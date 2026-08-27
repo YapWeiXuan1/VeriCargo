@@ -708,3 +708,7 @@
 .auth-page .auth-button--primary { background: #159a9c !important; color: #fff !important; }
 .app-popup { background: #12232b !important; border-color: var(--card-border) !important; }
 .app-popup h2, .app-popup p { color: #edf9f7 !important; }
+
+/* Keep validation feedback authoritative over the theme's inherited colors. */
+.auth-page .auth-field__error { color: #ff6b6b !important; font-weight: 600; }
+.auth-page .auth-field input[aria-invalid="true"] { border-color: #ff6b6b !important; box-shadow: 0 0 0 3px rgba(255, 107, 107, .14) !important; }

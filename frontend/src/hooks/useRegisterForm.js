@@ -82,12 +82,6 @@ export function useRegisterForm() {
         password: formData.password,
         role: formData.role,
       })
-      if (res.status === 500) {
-        setSubmitError('Registration failed. Please try again.')
-        setPopup({ variant: 'error', message: 'Registration failed. Please try again.', actionLabel: 'Try again' })
-        return
-      }
-
       setPopup({
         variant: 'success',
         title: 'Registration successful',
@@ -95,21 +89,8 @@ export function useRegisterForm() {
         actionLabel: 'Continue to sign in',
       })
 
-      // const { token, user } = res.data
-
-      // // Store authentication data
-      // localStorage.setItem('token', token)
-      // localStorage.setItem('user', JSON.stringify(user))
-      // localStorage.setItem('role', user.role)
-
-      // // Redirect based on role
-      // if (user.role === 'shipper') {
-      //   navigate('/shipperdashboard')
-      // } else {
-      //   navigate('/carrierdashboard')
-      // }
     } catch (err) {
-      const message = err.response?.data?.error || 'Registration failed. Please try again.'
+      const message = err.response?.data?.message || err.response?.data?.error || err.message || 'Registration failed. Please try again.'
       setSubmitError(message)
       setPopup({ variant: 'error', message, actionLabel: 'Try again' })
     } finally {
