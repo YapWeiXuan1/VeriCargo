@@ -9,6 +9,7 @@ function AppLayout({ title, subtitle, actions, children }) {
   const menuRef = useRef(null)
   const closeTimerRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout } = useAuth()
   const { disconnect } = useWallet()
 
@@ -39,6 +40,9 @@ function AppLayout({ title, subtitle, actions, children }) {
 
   return <div className="app-shell app-shell--hybrid">
     <header className="system-bar">
+      <button className={`mobile-nav-toggle ${sidebarOpen ? 'is-active' : ''}`} type="button" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'} aria-controls="mobile-sidebar" aria-expanded={sidebarOpen}>
+        <span /><span /><span />
+      </button>
       <Link className="system-brand" to="/dashboard" aria-label="VeriCargo dashboard"><span className="system-brand__icon" aria-hidden="true">VC</span><span>VeriCargo</span></Link>
       <div className="profile-menu" ref={menuRef} onMouseEnter={openMenu} onMouseLeave={scheduleMenuClose}>
         <button className="profile-button" type="button" onFocus={openMenu} aria-haspopup="menu" aria-expanded={menuOpen}>
@@ -51,7 +55,7 @@ function AppLayout({ title, subtitle, actions, children }) {
         </div>}
       </div>
     </header>
-    <div className="app-layout-body"><Sidebar user={user} /><div className="app-workspace"><main className="app-main app-main--hybrid">
+    <div className="app-layout-body">{sidebarOpen && <button className="sidebar-overlay" type="button" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" />}<Sidebar user={user} open={sidebarOpen} onNavigate={() => setSidebarOpen(false)} /><div className="app-workspace"><main className="app-main app-main--hybrid">
       <div className="app-topbar"><div className="app-topbar__title"><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>{actions && <div className="app-topbar__actions">{actions}</div>}</div>
       {children}
     </main></div></div>

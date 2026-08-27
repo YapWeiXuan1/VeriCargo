@@ -371,6 +371,63 @@ body {
 .account-menu__identity span { color: #9bc1be !important; }
 .account-menu__popover button { color: #d9efec !important; }
 .account-menu__popover button:hover { color: #fff !important; background: rgba(112, 214, 202, .14) !important; }
+
+/* Responsive application shell and shared content */
+.mobile-nav-toggle { display: none; width: 40px; height: 40px; padding: 9px; border: 1px solid var(--card-border); border-radius: 10px; background: rgba(112,214,202,.07); cursor: pointer; }
+.mobile-nav-toggle span { display: block; height: 2px; margin: 4px 0; border-radius: 2px; background: var(--text-main); }
+.sidebar-overlay { display: none; }
+
+@media (max-width: 980px) {
+  .app-shell--hybrid > .system-bar { position: sticky; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 64px; padding: 8px 16px; }
+  .mobile-nav-toggle { display: block; }
+  .mobile-nav-toggle.is-active span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .mobile-nav-toggle.is-active span:nth-child(2) { opacity: 0; }
+  .mobile-nav-toggle.is-active span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+  .mobile-nav-toggle span { transition: transform .18s ease, opacity .18s ease; }
+  .app-shell--hybrid .system-brand { min-width: 0; justify-self: start; }
+  .app-shell--hybrid .profile-menu { align-self: center; }
+  .app-shell--hybrid .profile-button { min-height: 40px; }
+  .app-shell--hybrid .sidebar { display: flex !important; position: fixed; inset: 64px auto 0 0; z-index: 45; width: min(280px, 86vw); height: calc(100dvh - 64px); transform: translateX(-105%) !important; visibility: hidden; opacity: 0; overflow-y: auto; transition: transform .22s ease, opacity .18s ease, visibility .22s; box-shadow: 18px 0 45px rgba(0,0,0,.38); }
+  .app-shell--hybrid .sidebar.sidebar--mobile-open { transform: translateX(0) !important; visibility: visible; opacity: 1; }
+  .sidebar-overlay { display: block; position: fixed; inset: 64px 0 0; z-index: 44; border: 0; background: rgba(3,12,16,.66); backdrop-filter: blur(2px); }
+  .app-layout-body, .app-workspace { width: 100%; min-width: 0; }
+  .app-main--hybrid { width: 100%; padding: 24px 20px 40px; }
+  .app-topbar__actions { width: 100%; justify-content: flex-start; }
+  .table-card { max-width: 100%; overflow-x: auto; }
+  .dash-grid > .card { min-width: 0; overflow-x: auto; }
+  .ship-table { min-width: 760px; }
+}
+
+@media (max-width: 700px) {
+  .app-shell--hybrid > .system-bar { gap: 9px; padding-inline: 10px; }
+  .app-main--hybrid { padding: 20px 12px 32px; }
+  .app-topbar { gap: 14px; margin-bottom: 20px; }
+  .app-topbar__actions { display: grid; grid-template-columns: 1fr; }
+  .app-topbar__actions > *, .app-topbar__actions .wallet-connect, .app-topbar__actions button, .app-topbar__actions a { width: 100%; justify-content: center; }
+  .card { padding: 16px; }
+  .profile-card__heading-row, .panel-header, .milestone-editor__heading { align-items: flex-start; flex-direction: column; }
+  .profile-card__heading-row > button, .profile-actions > button { width: 100%; }
+  .profile-form__actions { width: 100%; }
+  .profile-form__actions .btn { flex: 1; }
+  .wallet-card { min-height: 250px; padding: 20px; flex-direction: column; gap: 18px; }
+  .wallet-card__network { order: -1; align-self: flex-end; }
+  .wallet-card h2 { font-size: 1.9rem; overflow-wrap: anywhere; }
+  .payment-row { align-items: flex-start; flex-direction: column; }
+  .payment-pagination > div { justify-content: space-between; }
+  .payment-pagination button { flex: 1; }
+  .form-row, .item-grid { grid-template-columns: 1fr; }
+  .button-row { align-items: stretch; flex-direction: column; }
+  .button-row .btn { width: 100%; }
+  .profile-menu__dropdown { position: fixed; top: 68px; right: 12px; width: min(220px, calc(100vw - 24px)); }
+}
+
+@media (max-width: 420px) {
+  .system-brand > span:last-child, .profile-button > span:not(.profile-button__avatar) { display: none; }
+  .profile-button { padding-right: 6px; }
+  .stat-grid { grid-template-columns: 1fr; }
+  .payment-pagination > div { flex-wrap: wrap; }
+  .payment-pagination > div > span { width: 100%; text-align: center; order: -1; }
+}
 .profile-form input { background: #0d2028 !important; color: #edf9f7 !important; border-color: rgba(160, 220, 214, .2) !important; }
 .profile-form input::placeholder { color: rgba(237, 249, 247, .58) !important; opacity: 1 !important; }
 .profile-password-field button { color: #a8c7c5 !important; }
@@ -536,7 +593,6 @@ body { background: var(--page-bg); color: var(--text-main); }
 
 @media (max-width: 900px) {
   .app-workspace { margin-left: 0; }
-  .app-shell--hybrid .sidebar { display: none; }
 }
 
 @media (max-width: 650px) {
@@ -695,3 +751,11 @@ body { background: var(--page-bg); }
 .account-menu__identity span { color: #9bc1be !important; }
 .account-menu__popover button { color: #d9efec !important; }
 .account-menu__popover button:hover { color: #fff !important; background: rgba(112, 214, 202, .14) !important; }
+
+/* Final mobile drawer overrides: keep after all legacy sidebar rules. */
+@media (max-width: 980px) {
+  .app-shell--hybrid > .system-bar { grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; min-height: 64px; padding: 8px 16px; }
+  .app-shell--hybrid .sidebar { display: flex !important; position: fixed !important; inset: 64px auto 0 0 !important; z-index: 1001 !important; width: min(280px, 86vw); height: calc(100dvh - 64px) !important; transform: translate3d(-105%, 0, 0) !important; visibility: hidden; opacity: 0; background: #19323c !important; }
+  .app-shell--hybrid .sidebar.sidebar--mobile-open { transform: translate3d(0, 0, 0) !important; visibility: visible !important; opacity: 1 !important; }
+  .sidebar-overlay { display: block; position: fixed; inset: 64px 0 0; z-index: 1000 !important; }
+}

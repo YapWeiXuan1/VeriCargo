@@ -20,7 +20,7 @@ function Icon({ name }) {
   )
 }
 
-function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
+function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' }, open = false, onNavigate }) {
   const currentUser = user || { name: 'VeriCargo User', role: 'User' }
   const dashboardPath = currentUser.role?.toLowerCase() === 'carrier' ? '/carrierdashboard' : '/shipperdashboard'
   const isCarrier = currentUser.role?.toLowerCase() === 'carrier'
@@ -43,7 +43,7 @@ function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
   ]
 
   return (
-    <aside className="sidebar">
+    <aside id="mobile-sidebar" className={`sidebar ${open ? 'is-open sidebar--mobile-open' : ''}`}>
       <nav className="sidebar__nav">
         {navSections.map((section) => (
           <div key={section.label}>
@@ -53,6 +53,7 @@ function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' } }) {
                 key={link.to}
                 to={link.to === '/dashboard' ? dashboardPath : link.to}
                 className={({ isActive }) => `sidebar__link ${isActive ? 'is-active' : ''}`}
+                onClick={onNavigate}
               >
                 <Icon name={link.icon} />
                 <span>{link.label}</span>
