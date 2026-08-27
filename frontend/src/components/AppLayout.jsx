@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
+import vericargoLogo from '../assets/vericargo-logo.png'
 import { useAuth } from '../context/auth'
 import useWallet from '../hooks/useWallet'
 
@@ -43,7 +44,7 @@ function AppLayout({ title, subtitle, actions, children }) {
       <button className={`mobile-nav-toggle ${sidebarOpen ? 'is-active' : ''}`} type="button" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'} aria-controls="mobile-sidebar" aria-expanded={sidebarOpen}>
         <span /><span /><span />
       </button>
-      <Link className="system-brand" to="/dashboard" aria-label="VeriCargo dashboard"><span className="system-brand__icon" aria-hidden="true">VC</span><span>VeriCargo</span></Link>
+      <Link className="system-brand" to="/dashboard" aria-label="VeriCargo dashboard"><img className="system-brand__icon" src={vericargoLogo} alt="" /><span>VeriCargo</span></Link>
       <div className="profile-menu" ref={menuRef} onMouseEnter={openMenu} onMouseLeave={scheduleMenuClose}>
         <button className="profile-button" type="button" onFocus={openMenu} aria-haspopup="menu" aria-expanded={menuOpen}>
           <span className="profile-button__avatar">{(user?.fullName || 'U').slice(0, 1).toUpperCase()}</span><span>Profile</span>
