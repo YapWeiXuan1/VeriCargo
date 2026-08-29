@@ -76,7 +76,7 @@ export function useRegisterForm() {
     setLoading(true)
     try {
 
-      const res = await registerUser({
+      await registerUser({
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,

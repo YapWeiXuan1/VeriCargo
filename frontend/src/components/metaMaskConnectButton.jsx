@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import useWallet from '../hooks/useWallet'
-import { Popup } from './Popup'
+import { ConfirmPopup, Popup } from './Popup'
 
 function MetaMaskConnectButton({ className = '' }) {
   const { pathname } = useLocation()
+  const [confirmLink, setConfirmLink] = useState(false)
   const {
     account,
     linkedAddress,
@@ -40,15 +41,28 @@ function MetaMaskConnectButton({ className = '' }) {
         type="button"
         className="metamask-button"
         onClick={() => {
+          if (!linkedAddress) { setConfirmLink(true); return }
           void linkWallet().catch(() => {
             // The provider stores and renders the error for the user.
           })
         }}
         disabled={loading}
       >
-        <img className="metamask-icon" src="/metamask-logo-pack/MetaMask-Logo-Pack/MetaMask/MetaMask-icon-fox.svg" alt="" />
+        {loading ? <span className="state-spinner state-spinner--button" aria-hidden="true" /> : <img className="metamask-icon" src="/metamask-logo-pack/MetaMask-Logo-Pack/MetaMask/MetaMask-icon-fox.svg" alt="" />}
         {buttonText}
       </button>
+
+      {confirmLink && <ConfirmPopup
+        title="Link this MetaMask account permanently?"
+        message="After verification, this VeriCargo account is locked to the selected MetaMask wallet and cannot be changed. Confirm that you selected the correct account."
+        confirmLabel="Connect and sign"
+        cancelLabel="Cancel"
+        onCancel={() => setConfirmLink(false)}
+        onConfirm={() => {
+          setConfirmLink(false)
+          void linkWallet().catch(() => {})
+        }}
+      />}
 
       {message && (
         <Popup

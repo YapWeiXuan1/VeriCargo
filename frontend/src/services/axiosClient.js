@@ -77,5 +77,25 @@ export const verifyWalletChallenge = async (challengeId, signature) => {
   const response = await axiosClient.post('/wallet/verify-challenge', { challengeId, signature })
   return response.data
 }
+export const syncNotifications = async (notifications) => {
+  const response = await axiosClient.post('/notifications/sync', { notifications })
+  return response.data.notifications || []
+}
+export const getNotifications = async () => {
+  const response = await axiosClient.get('/notifications')
+  return response.data.notifications || []
+}
+export const markNotificationRead = async (id) => {
+  await axiosClient.patch(`/notifications/${id}/read`)
+}
+export const markAllNotificationsRead = async () => {
+  await axiosClient.patch('/notifications/read-all')
+}
+export const dismissNotification = async (id) => {
+  await axiosClient.patch(`/notifications/${id}/dismiss`)
+}
+export const dismissAllNotifications = async () => {
+  await axiosClient.patch('/notifications/dismiss-all')
+}
 
 export default axiosClient;

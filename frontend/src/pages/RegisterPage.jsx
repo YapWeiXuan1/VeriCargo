@@ -109,7 +109,7 @@ function RegisterPage() {
           {errors.agreeTerms && <small className="auth-field__error">{errors.agreeTerms}</small>}
 
           <button className="auth-button auth-button--primary" type="submit" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create account'}
+            {loading && <span className="state-spinner state-spinner--button" aria-hidden="true" />}{loading ? 'Creating account...' : 'Create account'}
           </button>
 
           {submitError && <p className="auth-field__error">{submitError}</p>}

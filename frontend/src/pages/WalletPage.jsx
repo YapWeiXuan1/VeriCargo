@@ -5,6 +5,7 @@ import useWallet from '../hooks/useWallet'
 import useAgreements from '../hooks/useAgreements'
 import { useAuth } from '../context/auth'
 import { formatEthValue, loadWalletBalance } from '../services/escrowService'
+import { EmptyState } from '../components/AgreementUI'
 
 export default function WalletPage() {
   const { user } = useAuth()
@@ -39,6 +40,10 @@ export default function WalletPage() {
 
   return <AppLayout title="Wallet" subtitle="Your Sepolia balance and VeriCargo payment activity.">
     <div className="profile-stack wallet-page">
+      <div className="wallet-account-reminder" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 018 0v3M12 14v3" /></svg>
+        <div><strong>One MetaMask account only</strong><span>{linkedAddress ? 'This VeriCargo account is permanently linked to the wallet shown below and cannot be changed to another MetaMask address.' : 'Choose carefully. After verification, this VeriCargo account will be permanently linked to that MetaMask address and cannot be changed.'}</span></div>
+      </div>
       <section className={`wallet-card ${isConnected ? 'wallet-card--connected' : 'wallet-card--disconnected'}`}>
         <div>
           <span className="profile-card__eyebrow">Sepolia wallet</span>
@@ -56,7 +61,7 @@ export default function WalletPage() {
         </div>
         <div className="payment-history">
           {visiblePayments.map((payment) => <div className="payment-row" key={payment.key}><div><strong>{payment.label}</strong><span>Agreement #{payment.agreementId} · {payment.date}</span></div><b className={payment.incoming ? 'is-incoming' : ''}>{payment.incoming ? '+' : '−'}{formatEthValue(payment.amount)} ETH</b></div>)}
-          {!visiblePayments.length && <p className="muted-copy">Verified milestone payments will appear here.</p>}
+          {!visiblePayments.length && <EmptyState title="No payment records" message="Verified milestone payments will appear here." />}
         </div>
         <div className="payment-pagination"><span>Showing {visiblePayments.length} of {payments.length}</span><div><button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</button><span>Page {page} of {pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => setPage((current) => current + 1)}>Next</button></div></div>
       </section>

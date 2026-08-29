@@ -101,7 +101,7 @@ function LoginPage() {
           </div>
 
           <button className="auth-button auth-button--primary" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading && <span className="state-spinner state-spinner--button" aria-hidden="true" />}{loading ? 'Signing in...' : 'Sign in'}
           </button>
 
           {submitError && <p className="auth-field__error">{submitError}</p>}

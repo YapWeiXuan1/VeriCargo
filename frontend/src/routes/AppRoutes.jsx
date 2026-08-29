@@ -21,7 +21,7 @@ function DashboardRedirect() {
 
 function AppRoutes() {
     const { user, loading } = useAuth()
-    if (loading) return <div className="app-loading">Checking your secure session…</div>
+    if (loading) return <div className="app-loading"><span className="state-spinner" aria-hidden="true" /><span>Checking your secure session…</span></div>
     return (
         <Routes>
             <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
