@@ -8,6 +8,7 @@ import WalletPage from '../pages/WalletPage.jsx'
 import PlaceholderPage from '../pages/PlaceholderPage.jsx'
 import { AgreementHistory, CarrierAgreements, CarrierClaims, CarrierProofs, ShipperAgreements, ShipperFunds, ShipperReview } from '../pages/EscrowPages.jsx'
 import { useAuth } from '../context/auth'
+import SettingsPage from '../pages/SettingsPage.jsx'
 
 function ProtectedRoute({ children }) {
     const { user } = useAuth()
@@ -40,11 +41,13 @@ function AppRoutes() {
             <Route path="/carrier/history" element={<ProtectedRoute><AgreementHistory role="carrier" /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
-            {['shipments', 'tracking', 'carriers', 'documents', 'payments', 'settings'].map((page) => (
+            {['shipments', 'tracking', 'carriers', 'documents', 'payments'].map((page) => (
                 <Route key={page} path={`/${page}`} element={<ProtectedRoute><PlaceholderPage title={page[0].toUpperCase() + page.slice(1)} /></ProtectedRoute>} />
             ))}
             <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+            <Route path="/settings"element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
+/>
         </Routes>
     )
 }
