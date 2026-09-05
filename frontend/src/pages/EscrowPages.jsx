@@ -207,7 +207,7 @@ export function ShipperFunds() {
   </Page>
 }
 
-export function CarrierAgreements() { const data = useAgreements('carrier'); return <Page title="Assigned agreements" subtitle="Review escrow terms, milestones, values, and delivery deadlines."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />{data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="carrier" pageSize={5} />}</Page> }
+export function CarrierAgreements() { const data = useAgreements('carrier'); return <Page title="Assigned agreements" subtitle="Review escrow terms, milestones, values, and delivery deadlines."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />{data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="carrier" pageSize={5} expandable />}</Page> }
 
 // eslint-disable-next-line no-unused-vars
 function CarrierProofsLegacy() {
@@ -236,7 +236,7 @@ function PaginatedAgreementTable({ agreements, role, actions, pageSize = 20, exp
   const footer = <div className="payment-pagination table-pagination"><span>Showing {visible.length} of {ordered.length} agreements</span><div><button type="button" disabled={page === 1} onClick={() => { setSelection({ id: null, open: false }); setPage((current) => current - 1) }}>Previous</button><span>Page {page} of {pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => { setSelection({ id: null, open: false }); setPage((current) => current + 1) }}>Next</button></div></div>
   const selected = visible.find((a) => a.id === selection.id)
   const expanded = Boolean(expandable && selected && selection.open)
-  const panelId = 'shipper-agreement-progress'
+  const panelId = `${role}-agreement-progress`
   return <AgreementTable agreements={visible} role={role} actions={actions} footer={footer} selectedId={expanded ? selection.id : null} panelId={panelId} onSelect={expandable ? (id) => setSelection((current) => ({ id, open: current.id !== id || !current.open })) : undefined} />
 }
 
