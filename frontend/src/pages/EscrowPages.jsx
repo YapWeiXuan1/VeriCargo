@@ -8,6 +8,10 @@ import { dateTime, escrowActions, shortAddress } from '../services/escrowService
 import { getProofImageUrl, searchCarriers, uploadProofImage } from '../services/axiosClient'
 import { Popup } from '../components/Popup'
 import MilestoneStepper from '../components/MilestoneStepper'
+import ShipmentDetailsForm from '../components/ShipmentDetailsForm'
+import ShipmentInformationCard from '../components/ShipmentInformationCard'
+import useShipmentCreation from '../hooks/useShipmentCreation'
+import { emptyShipment, validateShipmentDetails } from '../services/shipmentValidation'
 import '../styles/main.css'
 import '../styles/dashboard.css'
 
@@ -71,7 +75,7 @@ function AgreementTable({ agreements, role, actions, footer, onSelect, selectedI
     {agreements.map((a) => <Fragment key={a.id}><tr className={onSelect ? `agreement-row ${selectedId === a.id ? 'is-selected' : ''}` : undefined} onClick={onSelect ? () => onSelect(a.id) : undefined}><td className="ship-table__id">#{a.id}</td><td>{shortAddress(role === 'carrier' ? a.shipper : a.carrier)}</td><td>{a.totalEth} ETH</td><td>{a.verifiedMilestoneCount}/{a.milestones.length}</td><td>{dateTime(a.deadline)}</td><td><StatusPill status={a.status} /></td>{actions && <td>{actions(a)}</td>}{onSelect && <td><button type="button" className="agreement-row__toggle" aria-label={`Progress for agreement ${a.id}`} aria-expanded={selectedId === a.id} aria-controls={`${panelId}-${a.id}`} onClick={(event) => { event.stopPropagation(); onSelect(a.id) }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button></td>}</tr>
       {onSelect && <tr className="agreement-detail-row"><td colSpan={actions ? 8 : 7}>
         <div id={`${panelId}-${a.id}`} className={`agreement-expansion ${selectedId === a.id ? 'is-expanded' : ''}`} inert={selectedId !== a.id} aria-hidden={selectedId !== a.id}>
-          <div className="agreement-expansion__inner"><MilestoneStepper agreement={a} /></div>
+          <div className="agreement-expansion__inner"><div className="agreement-detail-panel">{selectedId === a.id && <ShipmentInformationCard key={a.id} agreementId={a.id} />}<div className="agreement-detail-panel__heading"><span>Payment milestones</span><small>On-chain progress</small></div><MilestoneStepper agreement={a} /></div></div>
         </div>
       </td></tr>}
     </Fragment>)}
@@ -88,6 +92,9 @@ export function ShipperAgreements() {
 
 export function ShipperCreateAgreement() {
   const navigate = useNavigate()
+  const shipmentWorkflow = useShipmentCreation()
+  const [shipment, setShipment] = useState(emptyShipment)
+  const [shipmentErrors, setShipmentErrors] = useState({})
   const data = useAgreements('shipper')
   const tx = useTransaction(data.refresh)
   const [form, setForm] = useState({ carrier: '', value: '', deadline: '' })
@@ -129,16 +136,20 @@ export function ShipperCreateAgreement() {
     const descriptions = milestones.map((milestone) => milestone.description.trim())
     const percentages = milestones.map((milestone) => Number(milestone.percentage))
     const errors = {}
+    const shipmentValidation = validateShipmentDetails(shipment)
+    setShipmentErrors(shipmentValidation)
+    let totalValue
+    try { totalValue = parseEther(form.value) } catch { errors.value = 'Enter a valid ETH value with at most 18 decimal places.' }
     if (!selectedCarrier) errors.carrier = 'Select a verified carrier.'
     if (!form.value || !Number.isFinite(Number(form.value)) || Number(form.value) <= 0) errors.value = 'Enter an ETH value greater than 0.'
     if (!form.deadline) errors.deadline = 'Choose a proof deadline.'
     else if (new Date(form.deadline).getTime() <= Date.now()) errors.deadline = 'The deadline must be in the future.'
     descriptions.forEach((description, index) => { if (!description) errors[`description-${index}`] = 'Enter a milestone description.' })
-    percentages.forEach((percentage, index) => { if (!Number.isFinite(percentage) || percentage <= 0) errors[`percentage-${index}`] = 'The release must be greater than 0%.' })
+    percentages.forEach((percentage, index) => { if (!Number.isInteger(percentage) || percentage <= 0) errors[`percentage-${index}`] = 'The release must be greater than 0%.' })
     if (percentages.reduce((sum, percentage) => sum + (Number.isFinite(percentage) ? percentage : 0), 0) !== 100) errors[`percentage-${milestones.length - 1}`] = 'Milestone releases must total exactly 100%.'
     setFieldErrors(errors)
-    if (Object.keys(errors).length) return
-    const created = await tx.run('create', () => escrowActions.create(form.carrier, parseEther(form.value), Math.floor(new Date(form.deadline).getTime() / 1000), descriptions, percentages))
+    if (Object.keys(errors).length || Object.keys(shipmentValidation).length) return
+    const created = await shipmentWorkflow.submit(shipment, tx.run, () => escrowActions.create(form.carrier, totalValue, Math.floor(new Date(form.deadline).getTime() / 1000), descriptions, percentages))
     if (created) setShowFundingReminder(true)
   }
   const updateMilestone = (index, field, value) => { setFieldErrors((current) => ({ ...current, [`${field}-${index}`]: '' })); setMilestones((current) => {
@@ -162,13 +173,17 @@ export function ShipperCreateAgreement() {
     return next
   })
   return <Page title="Create Agreement" subtitle="Create escrow terms for a new shipping agreement.">
-    <div className="function-grid"><form className="card contract-form" onSubmit={create} noValidate><div className="panel-header"><div><h2>Create agreement</h2><p>Milestone percentages must total 100.</p></div></div>
+    {shipmentWorkflow.message && <p role="status" className="form-message">{shipmentWorkflow.message}</p>}
+    {shipmentWorkflow.pending && <button type="button" className="btn btn--secondary" disabled={shipmentWorkflow.busy} onClick={async () => { if (await shipmentWorkflow.retry()) { setShowFundingReminder(true); void data.refresh() } }}>Retry saving shipment</button>}
+    <div className="function-grid"><form className="card contract-form" onSubmit={create} noValidate><fieldset className="shipment-creation-fields" disabled={shipmentWorkflow.busy || Boolean(shipmentWorkflow.pending) || shipmentWorkflow.complete}>
+      <ShipmentDetailsForm value={shipment} errors={shipmentErrors} onChange={(name, value) => { setShipment((current) => ({ ...current, [name]: value })); setShipmentErrors((current) => ({ ...current, [name]: '' })) }} />
+      <div className="shipment-section-heading"><span>02</span><div><h2>Escrow terms and carrier selection</h2><p>Choose the verified carrier and set the on-chain agreement terms.</p></div></div>
       <div className="carrier-field"><span>Carrier wallet</span><div className="carrier-select"><button className="carrier-select__trigger" data-error={Boolean(fieldErrors.carrier)} type="button" aria-expanded={carrierSearchOpen} aria-controls="carrier-options" onClick={() => { setCarrierSearch(''); setCarrierSearchOpen((open) => !open) }}>{selectedCarrier ? selectedCarrier.walletAddress : 'Choose a verified carrier'}<span aria-hidden="true">⌄</span></button>{carrierSearchOpen && <div className="carrier-select__menu"><input autoFocus value={carrierSearch} onChange={(e) => { setCarrierSearch(e.target.value); setSelectedCarrier(null); setForm({ ...form, carrier: '' }) }} placeholder="Search company, email, or wallet" />{carrierError && <p className="field-error">{carrierError}</p>}{carrierResults.length > 0 && <div className="carrier-results" id="carrier-options" role="listbox">{carrierResults.map((carrier) => <button className="carrier-result" role="option" type="button" key={carrier.id} onClick={() => { setSelectedCarrier(carrier); setFieldErrors((current) => ({ ...current, carrier: '' })); setCarrierSearch(''); setCarrierResults([]); setCarrierSearchOpen(false); setForm({ ...form, carrier: carrier.walletAddress }) }}><strong>{carrier.walletAddress}</strong><span>{carrier.companyName}</span><small>{carrier.email}</small></button>)}</div>}</div>}</div>{fieldErrors.carrier && <p className="field-error">{fieldErrors.carrier}</p>}</div>
       <div className="form-row"><label>Company name<input readOnly value={selectedCarrier?.companyName || ''} placeholder="Select a carrier" /></label><label>Company email<input readOnly value={selectedCarrier?.email || ''} placeholder="Select a carrier" /></label></div>
       <div className="form-row"><label>Total value (ETH)<input aria-invalid={Boolean(fieldErrors.value)} type="number" min="0" step="any" value={form.value} onChange={(e) => { setForm({ ...form, value: e.target.value }); setFieldErrors((current) => ({ ...current, value: '' })) }} />{fieldErrors.value && <span className="field-error">{fieldErrors.value}</span>}</label><label>Proof deadline<input aria-invalid={Boolean(fieldErrors.deadline)} className="deadline-input" type="datetime-local" min={minimumDeadline} value={form.deadline} onClick={(event) => event.currentTarget.showPicker?.()} onChange={(e) => { setForm({ ...form, deadline: e.target.value }); setFieldErrors((current) => ({ ...current, deadline: '' })) }} />{fieldErrors.deadline && <span className="field-error">{fieldErrors.deadline}</span>}</label></div>
-      <section className="milestone-editor"><div className="milestone-editor__heading"><div><h3>Milestones</h3><p>Change any percentage except the last one; the final milestone automatically balances the total to 100%.</p></div><button className="btn btn--secondary btn--compact" type="button" onClick={addMilestone}>Add milestone</button></div><div className="milestone-editor__list">{milestones.map((milestone, index) => <div className="milestone-item" key={index}><div className="milestone-row"><span className="milestone-row__number">{index + 1}</span><label>Description<input aria-invalid={Boolean(fieldErrors[`description-${index}`])} value={milestone.description} onChange={(event) => updateMilestone(index, 'description', event.target.value)} placeholder="e.g. Pickup confirmed" /></label><label>{index === milestones.length - 1 ? 'Release % (auto)' : 'Release %'}<input aria-invalid={Boolean(fieldErrors[`percentage-${index}`])} readOnly={index === milestones.length - 1} type="number" min="0" max="100" value={milestone.percentage} onChange={(event) => updateMilestone(index, 'percentage', event.target.value)} /></label><button className="btn btn--secondary btn--compact" type="button" disabled={milestones.length === 1} onClick={() => removeMilestone(index)}>Remove</button></div>{(fieldErrors[`description-${index}`] || fieldErrors[`percentage-${index}`]) && <div className="milestone-errors" role="alert"><span>{fieldErrors[`description-${index}`]}</span><span>{fieldErrors[`percentage-${index}`]}</span></div>}</div>)}</div></section>
-      <button className="btn btn--primary" disabled={!data.isConnected || tx.busy}>Create on Sepolia</button>{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
-    </form></div>
+      <section className="milestone-editor"><div className="milestone-editor__heading"><div><h3>03. Payment milestones</h3><p>Change any percentage except the last one; the final milestone automatically balances the total to 100%.</p></div><button className="btn btn--secondary btn--compact" type="button" onClick={addMilestone}>Add milestone</button></div><div className="milestone-editor__list">{milestones.map((milestone, index) => <div className="milestone-item" key={index}><div className="milestone-row"><span className="milestone-row__number">{index + 1}</span><label>Description<input aria-invalid={Boolean(fieldErrors[`description-${index}`])} value={milestone.description} onChange={(event) => updateMilestone(index, 'description', event.target.value)} placeholder="e.g. Pickup confirmed" /></label><label>{index === milestones.length - 1 ? 'Release % (auto)' : 'Release %'}<input aria-invalid={Boolean(fieldErrors[`percentage-${index}`])} readOnly={index === milestones.length - 1} type="number" min="0" max="100" value={milestone.percentage} onChange={(event) => updateMilestone(index, 'percentage', event.target.value)} /></label><button className="btn btn--secondary btn--compact" type="button" disabled={milestones.length === 1} onClick={() => removeMilestone(index)}>Remove</button></div>{(fieldErrors[`description-${index}`] || fieldErrors[`percentage-${index}`]) && <div className="milestone-errors" role="alert"><span>{fieldErrors[`description-${index}`]}</span><span>{fieldErrors[`percentage-${index}`]}</span></div>}</div>)}</div></section>
+      <button className="btn btn--primary" disabled={!data.isConnected || tx.busy || shipmentWorkflow.busy || Boolean(shipmentWorkflow.pending) || shipmentWorkflow.complete}>Create on Sepolia</button>{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
+    </fieldset></form></div>
     <PageState loading={data.loading} error={data.error} connected={data.isConnected} />
     {showFundingReminder && <Popup variant="success" title="Agreement created—fund it next" message="The agreement is recorded but remains pending until you fund the escrow. Go to Funding & refunds now to activate it." actionLabel="Go to funding" onAction={() => { setShowFundingReminder(false); navigate('/shipper/funds') }} onClose={() => setShowFundingReminder(false)} />}
   </Page>
@@ -276,4 +291,4 @@ export function CarrierClaims() {
   </Page>
 }
 
-export function AgreementHistory({ role }) { const data = useAgreements(role); const history = data.agreements.filter((a) => a.status >= 3); return <Page title="Agreement history" subtitle="Completed and refunded agreements recorded by the deployed escrow contract."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!history.length} />{history.length > 0 && <PaginatedAgreementTable agreements={history} role={role} />}</Page> }
+export function AgreementHistory({ role }) { const data = useAgreements(role); const history = data.agreements.filter((a) => a.status >= 3); return <Page title="Agreement history" subtitle="Completed and refunded agreements recorded by the deployed escrow contract."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!history.length} />{history.length > 0 && <PaginatedAgreementTable agreements={history} role={role} actions={(agreement) => <Link className="agreement-row__toggle" to={`/${role}/history/${agreement.id}`} aria-label={`View report for agreement ${agreement.id}`} title="View agreement report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg></Link>} />}</Page> }

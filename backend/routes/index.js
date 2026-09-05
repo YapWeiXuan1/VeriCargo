@@ -5,6 +5,9 @@ const requireAuth = require('../middleware/auth')
 const walletController = require('../controller/walletController');
 const proofController = require('../controller/proofController');
 const notificationController = require('../controller/notificationController');
+const shipmentController = require('../controller/shipmentController');
+router.post('/shipments', requireAuth, shipmentController.create);
+router.get('/shipments/agreement/:agreementId', requireAuth, shipmentController.forAgreement);
 router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 router.post('/auth/logout', authController.logout);

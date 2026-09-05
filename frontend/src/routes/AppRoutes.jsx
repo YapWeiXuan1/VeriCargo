@@ -8,6 +8,7 @@ import WalletPage from '../pages/WalletPage.jsx'
 import PlaceholderPage from '../pages/PlaceholderPage.jsx'
 import { AgreementHistory, CarrierAgreements, CarrierClaims, CarrierProofs, ShipperAgreements, ShipperCreateAgreement, ShipperFunds, ShipperReview } from '../pages/EscrowPages.jsx'
 import { useAuth } from '../context/auth'
+import AgreementHistoryReport from '../pages/AgreementHistoryReport.jsx'
 import SettingsPage from '../pages/SettingsPage.jsx'
 
 function ProtectedRoute({ children }) {
@@ -36,6 +37,8 @@ function AppRoutes() {
             <Route path="/shipper/review" element={<ProtectedRoute><ShipperReview /></ProtectedRoute>} />
             <Route path="/shipper/funds" element={<ProtectedRoute><ShipperFunds /></ProtectedRoute>} />
             <Route path="/shipper/history" element={<ProtectedRoute><AgreementHistory role="shipper" /></ProtectedRoute>} />
+            <Route path="/shipper/history/:agreementId" element={<ProtectedRoute><AgreementHistoryReport role="shipper" /></ProtectedRoute>} />
+            <Route path="/carrier/history/:agreementId" element={<ProtectedRoute><AgreementHistoryReport role="carrier" /></ProtectedRoute>} />
             <Route path="/carrier/agreements" element={<ProtectedRoute><CarrierAgreements /></ProtectedRoute>} />
             <Route path="/carrier/proofs" element={<ProtectedRoute><CarrierProofs /></ProtectedRoute>} />
             <Route path="/carrier/claims" element={<ProtectedRoute><CarrierClaims /></ProtectedRoute>} />
