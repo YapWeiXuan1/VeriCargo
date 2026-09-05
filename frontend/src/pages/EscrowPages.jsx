@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { parseEther } from 'ethers'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { ContractNote, PageState, StatusPill, WalletAction } from '../components/AgreementUI'
 import useAgreements from '../hooks/useAgreements'
 import { dateTime, escrowActions, shortAddress } from '../services/escrowService'
 import { getProofImageUrl, searchCarriers, uploadProofImage } from '../services/axiosClient'
 import { Popup } from '../components/Popup'
+import MilestoneStepper from '../components/MilestoneStepper'
 import '../styles/main.css'
 import '../styles/dashboard.css'
 
@@ -65,13 +66,27 @@ function ProofImage({ proofHash, agreementId, milestoneIndex, onReadyChange }) {
   return <img className="proof-image" src={imageUrl} alt="Carrier submitted proof" />
 }
 
-function AgreementTable({ agreements, role, actions, footer }) {
-  return <div className="card table-card"><table className="ship-table"><thead><tr><th>Agreement</th><th>{role === 'carrier' ? 'Shipper' : 'Carrier'}</th><th>Value</th><th>Progress</th><th>Deadline</th><th>Status</th>{actions && <th>Action</th>}</tr></thead><tbody>
-    {agreements.map((a) => <tr key={a.id}><td className="ship-table__id">#{a.id}</td><td>{shortAddress(role === 'carrier' ? a.shipper : a.carrier)}</td><td>{a.totalEth} ETH</td><td>{a.verifiedMilestoneCount}/{a.milestones.length}</td><td>{dateTime(a.deadline)}</td><td><StatusPill status={a.status} /></td>{actions && <td>{actions(a)}</td>}</tr>)}
+function AgreementTable({ agreements, role, actions, footer, onSelect, selectedId, panelId }) {
+  return <div className="card table-card"><table className="ship-table"><thead><tr><th>Agreement</th><th>{role === 'carrier' ? 'Shipper' : 'Carrier'}</th><th>Value</th><th>Progress</th><th>Deadline</th><th>Status</th>{actions && <th>Action</th>}{onSelect && <th><span className="agreement-row__sr">Progress details</span></th>}</tr></thead><tbody>
+    {agreements.map((a) => <Fragment key={a.id}><tr className={onSelect ? `agreement-row ${selectedId === a.id ? 'is-selected' : ''}` : undefined} onClick={onSelect ? () => onSelect(a.id) : undefined}><td className="ship-table__id">#{a.id}</td><td>{shortAddress(role === 'carrier' ? a.shipper : a.carrier)}</td><td>{a.totalEth} ETH</td><td>{a.verifiedMilestoneCount}/{a.milestones.length}</td><td>{dateTime(a.deadline)}</td><td><StatusPill status={a.status} /></td>{actions && <td>{actions(a)}</td>}{onSelect && <td><button type="button" className="agreement-row__toggle" aria-label={`Progress for agreement ${a.id}`} aria-expanded={selectedId === a.id} aria-controls={`${panelId}-${a.id}`} onClick={(event) => { event.stopPropagation(); onSelect(a.id) }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button></td>}</tr>
+      {onSelect && <tr className="agreement-detail-row"><td colSpan={actions ? 8 : 7}>
+        <div id={`${panelId}-${a.id}`} className={`agreement-expansion ${selectedId === a.id ? 'is-expanded' : ''}`} inert={selectedId !== a.id} aria-hidden={selectedId !== a.id}>
+          <div className="agreement-expansion__inner"><MilestoneStepper agreement={a} /></div>
+        </div>
+      </td></tr>}
+    </Fragment>)}
   </tbody></table>{footer}</div>
 }
 
 export function ShipperAgreements() {
+  const data = useAgreements('shipper')
+  return <Page title="My Agreements" subtitle="Review your active shipping agreements.">
+    <div className="panel-header"><h2>Active agreements</h2><Link className="btn btn--primary" to="/shipper/agreements/create">Create agreement</Link></div>
+    <PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />{data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="shipper" pageSize={5} expandable />}
+  </Page>
+}
+
+export function ShipperCreateAgreement() {
   const navigate = useNavigate()
   const data = useAgreements('shipper')
   const tx = useTransaction(data.refresh)
@@ -146,7 +161,7 @@ export function ShipperAgreements() {
     next[next.length - 1] = { ...next[next.length - 1], percentage: String(Math.max(0, 100 - used)) }
     return next
   })
-  return <Page title="Agreements" subtitle="Create escrow terms and review your active shipping agreements.">
+  return <Page title="Create Agreement" subtitle="Create escrow terms for a new shipping agreement.">
     <div className="function-grid"><form className="card contract-form" onSubmit={create} noValidate><div className="panel-header"><div><h2>Create agreement</h2><p>Milestone percentages must total 100.</p></div></div>
       <div className="carrier-field"><span>Carrier wallet</span><div className="carrier-select"><button className="carrier-select__trigger" data-error={Boolean(fieldErrors.carrier)} type="button" aria-expanded={carrierSearchOpen} aria-controls="carrier-options" onClick={() => { setCarrierSearch(''); setCarrierSearchOpen((open) => !open) }}>{selectedCarrier ? selectedCarrier.walletAddress : 'Choose a verified carrier'}<span aria-hidden="true">⌄</span></button>{carrierSearchOpen && <div className="carrier-select__menu"><input autoFocus value={carrierSearch} onChange={(e) => { setCarrierSearch(e.target.value); setSelectedCarrier(null); setForm({ ...form, carrier: '' }) }} placeholder="Search company, email, or wallet" />{carrierError && <p className="field-error">{carrierError}</p>}{carrierResults.length > 0 && <div className="carrier-results" id="carrier-options" role="listbox">{carrierResults.map((carrier) => <button className="carrier-result" role="option" type="button" key={carrier.id} onClick={() => { setSelectedCarrier(carrier); setFieldErrors((current) => ({ ...current, carrier: '' })); setCarrierSearch(''); setCarrierResults([]); setCarrierSearchOpen(false); setForm({ ...form, carrier: carrier.walletAddress }) }}><strong>{carrier.walletAddress}</strong><span>{carrier.companyName}</span><small>{carrier.email}</small></button>)}</div>}</div>}</div>{fieldErrors.carrier && <p className="field-error">{fieldErrors.carrier}</p>}</div>
       <div className="form-row"><label>Company name<input readOnly value={selectedCarrier?.companyName || ''} placeholder="Select a carrier" /></label><label>Company email<input readOnly value={selectedCarrier?.email || ''} placeholder="Select a carrier" /></label></div>
@@ -154,7 +169,7 @@ export function ShipperAgreements() {
       <section className="milestone-editor"><div className="milestone-editor__heading"><div><h3>Milestones</h3><p>Change any percentage except the last one; the final milestone automatically balances the total to 100%.</p></div><button className="btn btn--secondary btn--compact" type="button" onClick={addMilestone}>Add milestone</button></div><div className="milestone-editor__list">{milestones.map((milestone, index) => <div className="milestone-item" key={index}><div className="milestone-row"><span className="milestone-row__number">{index + 1}</span><label>Description<input aria-invalid={Boolean(fieldErrors[`description-${index}`])} value={milestone.description} onChange={(event) => updateMilestone(index, 'description', event.target.value)} placeholder="e.g. Pickup confirmed" /></label><label>{index === milestones.length - 1 ? 'Release % (auto)' : 'Release %'}<input aria-invalid={Boolean(fieldErrors[`percentage-${index}`])} readOnly={index === milestones.length - 1} type="number" min="0" max="100" value={milestone.percentage} onChange={(event) => updateMilestone(index, 'percentage', event.target.value)} /></label><button className="btn btn--secondary btn--compact" type="button" disabled={milestones.length === 1} onClick={() => removeMilestone(index)}>Remove</button></div>{(fieldErrors[`description-${index}`] || fieldErrors[`percentage-${index}`]) && <div className="milestone-errors" role="alert"><span>{fieldErrors[`description-${index}`]}</span><span>{fieldErrors[`percentage-${index}`]}</span></div>}</div>)}</div></section>
       <button className="btn btn--primary" disabled={!data.isConnected || tx.busy}>Create on Sepolia</button>{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
     </form></div>
-    <PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />{data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="shipper" pageSize={5} />}
+    <PageState loading={data.loading} error={data.error} connected={data.isConnected} />
     {showFundingReminder && <Popup variant="success" title="Agreement created—fund it next" message="The agreement is recorded but remains pending until you fund the escrow. Go to Funding & refunds now to activate it." actionLabel="Go to funding" onAction={() => { setShowFundingReminder(false); navigate('/shipper/funds') }} onClose={() => setShowFundingReminder(false)} />}
   </Page>
 }
@@ -211,14 +226,18 @@ function CarrierProofsLegacy() {
   })}</div>{tx.message && <p className="form-message">{tx.message}</p>}</Page>
 }
 
-function PaginatedAgreementTable({ agreements, role, actions, pageSize = 20 }) {
+function PaginatedAgreementTable({ agreements, role, actions, pageSize = 20, expandable = false }) {
+  const [selection, setSelection] = useState({ id: null, open: false })
   const [page, setPage] = useState(1)
   const ordered = [...agreements].sort((a, b) => b.id - a.id)
   const pageCount = Math.max(1, Math.ceil(ordered.length / pageSize))
   const visible = ordered.slice((page - 1) * pageSize, page * pageSize)
   useEffect(() => { if (page > pageCount) setPage(pageCount) }, [page, pageCount])
-  const footer = <div className="payment-pagination table-pagination"><span>Showing {visible.length} of {ordered.length} agreements</span><div><button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)}>Previous</button><span>Page {page} of {pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => setPage((current) => current + 1)}>Next</button></div></div>
-  return <AgreementTable agreements={visible} role={role} actions={actions} footer={footer} />
+  const footer = <div className="payment-pagination table-pagination"><span>Showing {visible.length} of {ordered.length} agreements</span><div><button type="button" disabled={page === 1} onClick={() => { setSelection({ id: null, open: false }); setPage((current) => current - 1) }}>Previous</button><span>Page {page} of {pageCount}</span><button type="button" disabled={page === pageCount} onClick={() => { setSelection({ id: null, open: false }); setPage((current) => current + 1) }}>Next</button></div></div>
+  const selected = visible.find((a) => a.id === selection.id)
+  const expanded = Boolean(expandable && selected && selection.open)
+  const panelId = 'shipper-agreement-progress'
+  return <AgreementTable agreements={visible} role={role} actions={actions} footer={footer} selectedId={expanded ? selection.id : null} panelId={panelId} onSelect={expandable ? (id) => setSelection((current) => ({ id, open: current.id !== id || !current.open })) : undefined} />
 }
 
 export function CarrierProofs() {

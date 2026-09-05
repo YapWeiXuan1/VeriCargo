@@ -6,7 +6,7 @@ import CarrierDashboard from '../pages/CarrierDashboard.jsx'
 import Profile from '../pages/profile.jsx'
 import WalletPage from '../pages/WalletPage.jsx'
 import PlaceholderPage from '../pages/PlaceholderPage.jsx'
-import { AgreementHistory, CarrierAgreements, CarrierClaims, CarrierProofs, ShipperAgreements, ShipperFunds, ShipperReview } from '../pages/EscrowPages.jsx'
+import { AgreementHistory, CarrierAgreements, CarrierClaims, CarrierProofs, ShipperAgreements, ShipperCreateAgreement, ShipperFunds, ShipperReview } from '../pages/EscrowPages.jsx'
 import { useAuth } from '../context/auth'
 import SettingsPage from '../pages/SettingsPage.jsx'
 
@@ -32,6 +32,7 @@ function AppRoutes() {
             <Route path="/shipperdashboard" element={<ProtectedRoute><ShipperDashboard /></ProtectedRoute>} />
             <Route path="/carrierdashboard" element={<ProtectedRoute><CarrierDashboard /></ProtectedRoute>} />
             <Route path="/shipper/agreements" element={<ProtectedRoute><ShipperAgreements /></ProtectedRoute>} />
+            <Route path="/shipper/agreements/create" element={<ProtectedRoute><ShipperCreateAgreement /></ProtectedRoute>} />
             <Route path="/shipper/review" element={<ProtectedRoute><ShipperReview /></ProtectedRoute>} />
             <Route path="/shipper/funds" element={<ProtectedRoute><ShipperFunds /></ProtectedRoute>} />
             <Route path="/shipper/history" element={<ProtectedRoute><AgreementHistory role="shipper" /></ProtectedRoute>} />

@@ -194,6 +194,30 @@ body {
     height: 19px;
 }
 
+.sidebar__toggle {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sidebar__toggle .sidebar__chevron {
+    margin-left: auto;
+    width: 16px;
+    height: 16px;
+}
+
+.sidebar__submenu {
+    padding-left: 19px;
+}
+
+.sidebar__submenu .sidebar__link {
+    font-size: 0.84rem;
+    white-space: normal;
+}
+
 .sidebar__link:hover {
     background: var(--surface-2);
     color: #fff;

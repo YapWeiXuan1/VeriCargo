@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 
 const icons = {
   grid: <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" />,
@@ -21,6 +22,10 @@ function Icon({ name }) {
 }
 
 function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' }, open = false, onNavigate }) {
+  const { pathname } = useLocation()
+  const [agreementsOpen, setAgreementsOpen] = useState(false)
+  const agreementsActive = pathname === '/shipper/agreements' || pathname.startsWith('/shipper/agreements/')
+  const agreementsExpanded = agreementsActive || agreementsOpen
   const currentUser = user || { name: 'VeriCargo User', role: 'User' }
   const dashboardPath = currentUser.role?.toLowerCase() === 'carrier' ? '/carrierdashboard' : '/shipperdashboard'
   const isCarrier = currentUser.role?.toLowerCase() === 'carrier'
@@ -48,7 +53,26 @@ function Sidebar({ user = { name: 'Alex Morgan', role: 'Shipper' }, open = false
         {navSections.map((section) => (
           <div key={section.label}>
             <div className="sidebar__section-label">{section.label}</div>
-            {section.links.map((link) => (
+            {section.links.map((link) => link.to === '/shipper/agreements' ? (
+              <div key={link.to}>
+                <button
+                  type="button"
+                  className="sidebar__link sidebar__toggle"
+                  aria-expanded={agreementsExpanded}
+                  aria-controls="shipper-agreements-submenu"
+                  onClick={() => setAgreementsOpen((expanded) => !expanded)}
+                >
+                  <Icon name={link.icon} />
+                  <span>{link.label}</span>
+                  <svg className="sidebar__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d={agreementsExpanded ? 'M6 15l6-6 6 6' : 'M9 6l6 6-6 6'} /></svg>
+                </button>
+                <div id="shipper-agreements-submenu" className="sidebar__submenu" hidden={!agreementsExpanded}>
+                  {[{ to: '/shipper/agreements', label: 'My Agreements' }, { to: '/shipper/agreements/create', label: 'Create Agreement' }].map((item) => (
+                    <NavLink key={item.to} to={item.to} end className={({ isActive }) => `sidebar__link ${isActive ? 'is-active' : ''}`} onClick={onNavigate}>{item.label}</NavLink>
+                  ))}
+                </div>
+              </div>
+            ) : (
               <NavLink
                 key={link.to}
                 to={link.to === '/dashboard' ? dashboardPath : link.to}
