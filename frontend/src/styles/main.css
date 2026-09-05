@@ -559,8 +559,6 @@ body { background: var(--page-bg); color: var(--text-main); }
 /* Top-navigation application shell */
 .app-shell--topnav { display: block; min-height: 100vh; }
 .system-bar { position: sticky; top: 0; z-index: 30; min-height: 72px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px; padding: 0 clamp(20px, 4vw, 64px); background: rgba(13, 36, 45, .94); border-bottom: 1px solid var(--card-border); backdrop-filter: blur(18px); }
-.system-bar--dashboard-link { cursor: pointer; }
-.system-bar--dashboard-link button, .system-bar--dashboard-link a { cursor: pointer; }
 .system-brand { display: inline-flex; width: max-content; justify-self: start; align-items: center; gap: 10px; color: var(--text-main); font-weight: 800; text-decoration: none; }
 .system-brand__icon { width: 42px; height: 42px; display: block; flex: 0 0 42px; object-fit: contain; }
 .system-nav { display: flex; justify-content: center; gap: 6px; }

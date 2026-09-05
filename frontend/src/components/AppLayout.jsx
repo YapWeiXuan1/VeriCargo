@@ -64,13 +64,7 @@ function AppLayout({ title, subtitle, actions, children }) {
 
   return (
     <div className="app-shell app-shell--hybrid">
-      <header
-        className="system-bar system-bar--dashboard-link"
-        onClick={(event) => {
-          if (!event.target.closest('button, a, [role="menu"]'))
-            navigate("/dashboard");
-        }}
-      >
+      <header className="system-bar">
         <button
           className={`mobile-nav-toggle ${sidebarOpen ? "is-active" : ""}`}
           type="button"
