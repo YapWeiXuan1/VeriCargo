@@ -35,7 +35,7 @@ function Page({ title, subtitle, children }) {
   return <AppLayout title={title} subtitle={subtitle} actions={<WalletAction />}><ContractNote />{children}</AppLayout>
 }
 
-function ProofImage({ proofHash, agreementId, milestoneIndex, onReadyChange }) {
+function ProofImage({ proofHash, agreementId, milestoneIndex, onVerificationChange }) {
   const [imageUrl, setImageUrl] = useState('')
   const [error, setError] = useState('')
 
@@ -44,7 +44,9 @@ function ProofImage({ proofHash, agreementId, milestoneIndex, onReadyChange }) {
     let active = true
 
     const loadProof = async () => {
-      onReadyChange?.(false)
+      setError('')
+      setImageUrl('')
+      onVerificationChange?.({ status: 'checking', storageHash: '', blockchainHash: proofHash.toLowerCase() })
       try {
         const signedUrl = await getProofImageUrl(proofHash, agreementId, milestoneIndex)
         const buffer = await fetch(signedUrl).then((response) => {
@@ -53,21 +55,59 @@ function ProofImage({ proofHash, agreementId, milestoneIndex, onReadyChange }) {
         })
         const digest = await crypto.subtle.digest('SHA-256', buffer)
         const actualHash = `0x${Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, '0')).join('')}`
-        if (actualHash !== proofHash.toLowerCase()) throw new Error('Proof image hash does not match the on-chain hash.')
+        const blockchainHash = proofHash.toLowerCase()
+        const matches = actualHash.toLowerCase() === blockchainHash
         objectUrl = URL.createObjectURL(new Blob([buffer]))
-        if (active) { setImageUrl(objectUrl); onReadyChange?.(true) }
-      } catch (loadError) {
-        if (active) { setError(loadError.message || 'Unable to verify proof image.'); onReadyChange?.(false) }
+        if (active) {
+          setImageUrl(objectUrl)
+          onVerificationChange?.({
+            status: matches ? 'match' : 'mismatch',
+            storageHash: actualHash,
+            blockchainHash,
+          })
+        }
+      } catch {
+        if (active) {
+          setError('This proof cannot be verified. The stored image may be missing or different from the proof recorded on the blockchain. Please reject it and ask the carrier to submit the proof again.')
+          onVerificationChange?.({
+            status: 'mismatch',
+            storageHash: 'Not available — stored proof could not be verified',
+            blockchainHash: proofHash.toLowerCase(),
+          })
+        }
       }
     }
 
     if (proofHash) void loadProof()
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl) }
-  }, [proofHash, agreementId, milestoneIndex, onReadyChange])
+  }, [proofHash, agreementId, milestoneIndex, onVerificationChange])
 
   if (error) return <p className="form-message form-message--error">{error}</p>
   if (!imageUrl) return <div className="inline-loading"><span className="state-spinner" aria-hidden="true" /><span>Loading and verifying proof image…</span></div>
   return <img className="proof-image" src={imageUrl} alt="Carrier submitted proof" />
+}
+
+function ProofIntegrity({ verification }) {
+  const labels = {
+    checking: 'Checking integrity…',
+    match: 'Hashes match',
+    mismatch: 'Proof integrity check failed',
+    error: 'Proof integrity check failed',
+  }
+  if (!verification || verification.status === 'idle') return null
+
+  return <section className={`proof-integrity proof-integrity--${verification.status}`} aria-live="polite">
+    <div className="proof-integrity__heading">
+      <div><span>Proof integrity</span><strong>{labels[verification.status]}</strong></div>
+      <span className="proof-integrity__badge" aria-hidden="true">{verification.status === 'match' ? '✓' : verification.status === 'mismatch' || verification.status === 'error' ? '!' : '…'}</span>
+    </div>
+    <dl className="proof-integrity__hashes">
+      <div><dt>Supabase image SHA-256</dt><dd><code title={verification.storageHash}>{verification.storageHash || 'Calculating from stored image…'}</code></dd></div>
+      <div><dt>Blockchain SHA-256</dt><dd><code title={verification.blockchainHash}>{verification.blockchainHash || 'Reading from smart contract…'}</code></dd></div>
+    </dl>
+    {verification.status === 'match' && <p>The stored proof image is unchanged and matches the hash recorded on Sepolia.</p>}
+    {verification.status === 'mismatch' && <p>The stored proof could not be confirmed against the blockchain record. Do not approve it; reject it and ask the carrier to submit the proof again.</p>}
+  </section>
 }
 
 function AgreementTable({ agreements, role, actions, footer, onSelect, selectedId, panelId }) {
@@ -205,13 +245,13 @@ function WorkflowModal({ title, onClose, children }) {
 export function ShipperReview() {
   const data = useAgreements('shipper'); const tx = useTransaction(data.refresh)
   const [selected, setSelected] = useState(null)
-  const [proofReady, setProofReady] = useState(false)
+  const [proofVerification, setProofVerification] = useState({ status: 'idle', storageHash: '', blockchainHash: '' })
   const items = data.agreements.flatMap((a) => a.milestones.filter((m) => m.index === a.nextVerificationIndex && m.proofSubmittedAt && !m.verified && !m.rejected).map((m) => ({ a, m })))
   const act = async (key, action) => { if (await tx.run(key, action)) setSelected(null) }
   return <Page title="Review proofs" subtitle="Select a submitted milestone to inspect its proof and make a decision."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!items.length} />
-    {items.length > 0 && <div className="card table-card workflow-table"><table className="ship-table"><thead><tr><th>Agreement</th><th>Milestone</th><th>Release</th><th>Submitted</th><th>Deadline</th><th /></tr></thead><tbody>{items.map(({ a, m }) => <tr key={`${a.id}-${m.index}`}><td className="ship-table__id">#{a.id}</td><td>{m.description}</td><td>{m.percent}%</td><td>{dateTime(m.proofSubmittedAt)}</td><td>{dateTime(m.proofSubmittedAt + 259200)}</td><td><button className="btn btn--compact btn--secondary" type="button" onClick={() => { tx.clearMessage(); setProofReady(false); setSelected({ a, m }) }}>View proof</button></td></tr>)}</tbody></table></div>}
+    {items.length > 0 && <div className="card table-card workflow-table"><table className="ship-table"><thead><tr><th>Agreement</th><th>Milestone</th><th>Release</th><th>Submitted</th><th>Deadline</th><th /></tr></thead><tbody>{items.map(({ a, m }) => <tr key={`${a.id}-${m.index}`}><td className="ship-table__id">#{a.id}</td><td>{m.description}</td><td>{m.percent}%</td><td>{dateTime(m.proofSubmittedAt)}</td><td>{dateTime(m.proofSubmittedAt + 259200)}</td><td><button className="btn btn--compact btn--secondary" type="button" onClick={() => { tx.clearMessage(); setProofVerification({ status: 'idle', storageHash: '', blockchainHash: '' }); setSelected({ a, m }) }}>View proof</button></td></tr>)}</tbody></table></div>}
     {tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
-    {selected && <WorkflowModal title={`Agreement #${selected.a.id} · Milestone ${selected.m.index + 1}`} onClose={() => { setSelected(null); setProofReady(false) }}><div className="workflow-detail"><span className="card-kicker">{selected.m.percent}% release</span><h3>{selected.m.description}</h3><p>Submitted: {dateTime(selected.m.proofSubmittedAt)}</p><p>Review deadline: {dateTime(selected.m.proofSubmittedAt + 259200)}</p><ProofImage proofHash={selected.m.proofHash} agreementId={selected.a.id} milestoneIndex={selected.m.index} onReadyChange={setProofReady} /><div className="button-row workflow-actions"><button className="btn btn--primary" disabled={tx.busy || !proofReady} onClick={() => act(`v-${selected.a.id}`, () => escrowActions.verify(selected.a.id, selected.m.index))}>Verify & release</button><button className="btn btn--secondary" disabled={tx.busy || !proofReady} onClick={() => act(`r-${selected.a.id}`, () => escrowActions.reject(selected.a.id, selected.m.index))}>Reject proof</button></div>{!proofReady && !tx.message && <p className="muted-copy">Verify and reject will be available after the proof image loads and passes hash verification.</p>}{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}</div></WorkflowModal>}
+    {selected && <WorkflowModal title={`Agreement #${selected.a.id} · Milestone ${selected.m.index + 1}`} onClose={() => { setSelected(null); setProofVerification({ status: 'idle', storageHash: '', blockchainHash: '' }) }}><div className="workflow-detail"><span className="card-kicker">{selected.m.percent}% release</span><h3>{selected.m.description}</h3><p>Submitted: {dateTime(selected.m.proofSubmittedAt)}</p><p>Review deadline: {dateTime(selected.m.proofSubmittedAt + 259200)}</p><ProofImage proofHash={selected.m.proofHash} agreementId={selected.a.id} milestoneIndex={selected.m.index} onVerificationChange={setProofVerification} /><ProofIntegrity verification={proofVerification} /><div className="button-row workflow-actions"><button className="btn btn--primary" disabled={tx.busy || proofVerification.status !== 'match'} onClick={() => act(`v-${selected.a.id}`, () => escrowActions.verify(selected.a.id, selected.m.index))}>Verify & release</button><button className="btn btn--secondary" disabled={tx.busy || !['match', 'mismatch'].includes(proofVerification.status)} onClick={() => act(`r-${selected.a.id}`, () => escrowActions.reject(selected.a.id, selected.m.index))}>Reject proof</button></div>{['idle', 'checking'].includes(proofVerification.status) && !tx.message && <p className="muted-copy">The decision buttons will be available after the image hash is calculated and compared with Sepolia.</p>}{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}</div></WorkflowModal>}
   </Page>
 }
 
