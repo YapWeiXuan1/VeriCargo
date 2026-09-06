@@ -23,6 +23,10 @@ exports.register = async (req, res) => {
         if (!email || !password || !fullName || !role) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
+        if (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return res.status(400).json({ message: 'Enter a valid email address.' });
+        if (typeof fullName !== 'string' || !fullName.trim() || fullName.trim().length > 160) return res.status(400).json({ message: 'Full name must contain 1 to 160 characters.' });
+        if (!['shipper', 'carrier'].includes(role)) return res.status(400).json({ message: 'Select shipper or carrier.' });
+        if (typeof password !== 'string' || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) return res.status(400).json({ message: 'Password must contain at least 8 characters, an uppercase letter and a number.' });
         const result = await authService.registerUser(email, password, fullName, role);
         res.status(201).json({ message: 'User registered successfully', data: { user: result.user } });
     } catch (error) {
@@ -52,6 +56,7 @@ exports.login = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const { fullName, email } = req.body
+        if (typeof fullName !== 'string' || fullName.trim().length > 160 || typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return res.status(400).json({ message: 'Enter a name of at most 160 characters and a valid email address.' })
         if (!fullName?.trim() || !email?.trim()) return res.status(400).json({ message: 'Name and email are required' })
         const user = await authService.updateProfile(req.user.id, fullName.trim(), email.trim())
         res.status(200).json({ message: 'Profile updated successfully', user })
@@ -63,6 +68,7 @@ exports.updateProfile = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body
+        if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) return res.status(400).json({ message: 'Enter your current password and a new password with an uppercase letter and a number.' })
         if (!currentPassword || !newPassword) return res.status(400).json({ message: 'Both passwords are required' })
         if (newPassword.length < 8) return res.status(400).json({ message: 'New password must be at least 8 characters' })
         await authService.resetPassword(req.user.id, currentPassword, newPassword)

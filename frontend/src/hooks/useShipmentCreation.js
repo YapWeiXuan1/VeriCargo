@@ -4,7 +4,7 @@ import { decodeShipmentAgreement, saveShipment } from '../services/shipmentServi
 export default function useShipmentCreation() {
   const [pending, setPending] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message,   setMessage] = useState('')
   const [complete, setComplete] = useState(false)
   const guard = useRef(false)
   const save = async (record) => {
@@ -14,6 +14,7 @@ export default function useShipmentCreation() {
       setPending(null); setComplete(true); setMessage('Shipment information saved.')
       return true
     } catch {
+      window.dispatchEvent(new CustomEvent('vericargo:feedback', { detail: { variant: 'warning', message: 'Your agreement was created, but the shipment details could not be saved. Use Retry saving shipment to finish.' } }))
       setMessage('Agreement created on Sepolia, but shipment information could not be saved.')
       return false
     }

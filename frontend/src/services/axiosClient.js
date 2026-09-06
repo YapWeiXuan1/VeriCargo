@@ -47,6 +47,8 @@ export const searchCarriers = async (search) => {
   return response.data.carriers || []
 }
 export const uploadProofImage = async (file, agreementId, milestoneIndex) => {
+  if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Select a JPG, PNG, or WebP proof image.')
+  if (!file.size || file.size > 8 * 1024 * 1024) throw new Error('Select a non-empty proof image no larger than 8 MB.')
   const imageData = await new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result)

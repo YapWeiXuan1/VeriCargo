@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
 const statusContent = {
+  warning: { eyebrow: 'Attention needed', title: 'Please check before continuing', icon: '!' },
   success: { eyebrow: 'Success', title: 'Everything is ready', icon: '✓' },
   error: { eyebrow: 'Something went wrong', title: 'Action could not be completed', icon: '!' },
   random: { eyebrow: 'A little surprise', title: 'You are cleared for takeoff', icon: '✦' },
@@ -27,7 +28,7 @@ export function Popup({
   }, [autoCloseMs, hasAction, onClose])
 
   return createPortal(
-    <div className="app-popup__backdrop" role="presentation">
+    <div className="app-popup__backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose?.() }}>
       <section className={`app-popup app-popup--${variant}`} role="dialog" aria-modal="true" aria-labelledby="app-popup-title">
         {showCloseButton && <button className="app-popup__close" type="button" onClick={onClose} aria-label="Close popup">&times;</button>}
         <div className="app-popup__icon" aria-hidden="true">{content.icon}</div>
@@ -50,7 +51,7 @@ export function ConfirmPopup({
   onCancel,
 }) {
   return createPortal(
-    <div className="app-popup__backdrop" role="presentation">
+    <div className="app-popup__backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onCancel?.() }}>
       <section className="app-popup app-popup--confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-popup-title">
         <div className="app-popup__icon" aria-hidden="true">?</div>
         <span className="app-popup__eyebrow">Please confirm</span>

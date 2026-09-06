@@ -45,7 +45,10 @@ export function useLoginForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError('')
-    if (!validate()) return
+    if (!validate()) {
+      setSubmitError('Please correct the highlighted sign-in fields.')
+      return
+    }
 
     setLoading(true)
     try {
@@ -58,6 +61,7 @@ export function useLoginForm() {
       // Store only the persistence preference, never the user or auth token.
       sessionStorage.setItem('vericargo_remember', formData.rememberMe ? '1' : '0')
       setUser(user)
+      window.dispatchEvent(new CustomEvent('vericargo:feedback', { detail: { variant: 'success', title: 'Signed in', message: 'Welcome back to VeriCargo.' } }))
       if (user.role === 'shipper') {
         navigate('/shipperdashboard')
       } else {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { Popup } from '../components/Popup'
+import FormFeedback from '../components/FormFeedback'
 import { useAuth } from '../context/auth'
 import {
   CONTRACT_ADDRESS,
@@ -147,6 +148,7 @@ function SettingsPage() {
               Restore defaults
             </button>
           </div>
+          <FormFeedback message={message} />
         </section>
 
         <section className="settings-grid">

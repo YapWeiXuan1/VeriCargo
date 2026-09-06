@@ -71,7 +71,10 @@ export function useRegisterForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError('')
-    if (!validate()) return
+    if (!validate()) {
+      setSubmitError('Please correct the highlighted registration fields.')
+      return
+    }
 
     setLoading(true)
     try {
@@ -92,7 +95,6 @@ export function useRegisterForm() {
     } catch (err) {
       const message = err.response?.data?.message || err.response?.data?.error || err.message || 'Registration failed. Please try again.'
       setSubmitError(message)
-      setPopup({ variant: 'error', message, actionLabel: 'Try again' })
     } finally {
       setLoading(false)
     }

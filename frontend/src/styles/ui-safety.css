@@ -1,0 +1,41 @@
+/* Content may wrap or scroll locally, but must not widen the application. */
+.form-message--error, .field-error, .auth-field__error, .error-message, .page-state--error, .metamask-status--error { color: #ff6b6b !important; }
+.form-message--success, .metamask-status--success { color: #8af0c3 !important; border-color: rgba(103,232,181,.34); border-left-color: #67e8b5; background: rgba(103,232,181,.1); }
+.form-message--warning { color: #ffd39b !important; border-color: rgba(255,180,84,.45); border-left-color: #ffb454; background: rgba(255,180,84,.1); }
+.app-popup--error p { color: #ff6b6b !important; }
+.app-popup--success p { color: #8af0c3 !important; }
+.form-message { margin-top: 8px; overflow-wrap: anywhere; }
+.form-validation-summary { margin: 8px 0 0; color: #ff6b6b; font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
+.contract-form .form-message--error, .contract-form .form-message--warning, .profile-form .form-message--error { padding: 0; border: 0; background: transparent; }
+.reminder-banner { box-sizing: border-box; display: flex; align-items: center; gap: 13px; width: 100%; margin: 0 0 18px; padding: 16px 18px; border: 1px solid rgba(255,180,84,.55); border-left: 4px solid #ffb454; border-radius: 12px; background: linear-gradient(90deg, rgba(255,180,84,.15), #122b34); color: var(--text-main); }
+.reminder-banner__icon { flex: 0 0 34px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #ffb454; color: #10252d; font-size: 20px; font-weight: 900; }
+.reminder-banner > div { min-width: 0; overflow-wrap: anywhere; }
+.reminder-banner strong { font-size: .9rem; }
+.reminder-banner p { margin: 4px 0 0; font-size: .82rem; line-height: 1.5; color: var(--text-soft); }
+.profile-stack > .reminder-banner { margin-bottom: 0; }
+.app-layout-body, .app-workspace, .app-main, .card, .profile-stack,
+.wallet-card > div, .form-row > *, .profile-form label, .notification-copy,
+.settings-toggle__copy, .shipment-information, .milestone-item { min-width: 0; }
+.app-main, .table-card, .workflow-modal, .app-popup { box-sizing: border-box; max-width: 100%; }
+.table-card { overflow-x: auto; }
+.profile-card h2, .profile-details dd, .payment-row, .shipment-information dd,
+.form-message, .field-error, .auth-field__error, .workflow-detail, .app-popup p,
+.app-popup h2, .notification-copy { overflow-wrap: anywhere; }
+.profile-details dd { min-width: 0; margin-left: 0; }
+.carrier-result strong, .carrier-result small { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carrier-select__trigger { min-width: 0; overflow-wrap: anywhere; }
+.workflow-modal, .app-popup { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.proof-image { display: block; max-width: 100%; object-fit: contain; }
+input, textarea, select { box-sizing: border-box; min-width: 0; max-width: 100%; }
+input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] { border-color: #ff6b6b !important; }
+.notification-dropdown__heading { gap: 10px; flex-wrap: wrap; }
+.notification-heading-actions { flex-wrap: wrap; }
+.app-popup__actions { flex-wrap: wrap; }
+.app-popup__backdrop { z-index: 3200; padding: 16px; box-sizing: border-box; }
+.app-popup--warning .app-popup__icon { color: #ffbd69; }
+@media (max-width: 600px) {
+  .payment-row, .payment-pagination, .payment-history__header { flex-wrap: wrap; }
+  .payment-pagination > div { flex-wrap: wrap; justify-content: center; }
+  .wallet-card { flex-wrap: wrap; gap: 16px; }
+  .notification-dropdown { position: fixed; top: 72px; right: 12px; left: 12px; width: auto; }
+}

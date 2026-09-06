@@ -4,9 +4,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { ContractNote, PageState, StatusPill, WalletAction } from '../components/AgreementUI'
 import useAgreements from '../hooks/useAgreements'
+import useWallet from '../hooks/useWallet'
+import ReminderBanner from '../components/ReminderBanner'
 import { dateTime, escrowActions, shortAddress } from '../services/escrowService'
 import { getProofImageUrl, searchCarriers, uploadProofImage } from '../services/axiosClient'
 import { Popup } from '../components/Popup'
+import FormFeedback from '../components/FormFeedback'
 import MilestoneStepper from '../components/MilestoneStepper'
 import ShipmentDetailsForm from '../components/ShipmentDetailsForm'
 import ShipmentInformationCard from '../components/ShipmentInformationCard'
@@ -23,8 +26,17 @@ function useTransaction(refresh) {
     setBusy(key); setMessage('Confirm the transaction in MetaMask…')
     window.dispatchEvent(new CustomEvent('vericargo:transaction-lock', { detail: { locked: true, message: 'Confirm the transaction in MetaMask, then wait for Sepolia confirmation.' } }))
     setError(false)
-    try { await action(); setMessage('Transaction confirmed on Sepolia.'); await refresh(); return true }
-    catch (err) { setError(true); setMessage(err.shortMessage || err.reason || err.message || 'Transaction failed.'); return false }
+    try {
+      await action(); setMessage('Transaction confirmed on Sepolia.')
+      if (key !== 'create') window.dispatchEvent(new CustomEvent('vericargo:feedback', { detail: { variant: 'success', message: 'Transaction confirmed on Sepolia.' } }))
+      await refresh?.(); return true
+    }
+    catch (err) {
+      const detail = err.shortMessage || err.reason || err.message || 'Transaction failed.'
+      setError(true); setMessage(detail)
+      window.dispatchEvent(new CustomEvent('vericargo:feedback', { detail: { variant: 'error', message: detail } }))
+      return false
+    }
     finally { setBusy(''); window.dispatchEvent(new CustomEvent('vericargo:transaction-lock', { detail: { locked: false } })) }
   }
   const clearMessage = () => { setMessage(''); setError(false) }
@@ -135,8 +147,8 @@ export function ShipperCreateAgreement() {
   const shipmentWorkflow = useShipmentCreation()
   const [shipment, setShipment] = useState(emptyShipment)
   const [shipmentErrors, setShipmentErrors] = useState({})
-  const data = useAgreements('shipper')
-  const tx = useTransaction(data.refresh)
+  const { isConnected } = useWallet()
+  const tx = useTransaction()
   const [form, setForm] = useState({ carrier: '', value: '', deadline: '' })
   const [milestones, setMilestones] = useState([
     { description: 'Pickup', percentage: '30' },
@@ -149,7 +161,25 @@ export function ShipperCreateAgreement() {
   const [carrierSearchOpen, setCarrierSearchOpen] = useState(false)
   const [minimumDeadline] = useState(() => new Date(Date.now() + 60000).toISOString().slice(0, 16))
   const [fieldErrors, setFieldErrors] = useState({})
+  const [validationMessage, setValidationMessage] = useState('')
   const [showFundingReminder, setShowFundingReminder] = useState(false)
+
+  const finishCreation = () => {
+    if (!shipmentWorkflow.reset()) return
+    setShipment({ ...emptyShipment })
+    setShipmentErrors({})
+    setForm({ carrier: '', value: '', deadline: '' })
+    setMilestones([{ description: 'Pickup', percentage: '30' }, { description: 'Delivery', percentage: '70' }])
+    setSelectedCarrier(null)
+    setCarrierSearch('')
+    setCarrierResults([])
+    setCarrierError('')
+    setCarrierSearchOpen(false)
+    setFieldErrors({})
+    setValidationMessage('')
+    tx.clearMessage()
+    setShowFundingReminder(false)
+  }
 
   useEffect(() => {
     let active = true
@@ -173,6 +203,7 @@ export function ShipperCreateAgreement() {
 
   const create = async (event) => {
     event.preventDefault()
+    setValidationMessage('')
     const descriptions = milestones.map((milestone) => milestone.description.trim())
     const percentages = milestones.map((milestone) => Number(milestone.percentage))
     const errors = {}
@@ -183,12 +214,15 @@ export function ShipperCreateAgreement() {
     if (!selectedCarrier) errors.carrier = 'Select a verified carrier.'
     if (!form.value || !Number.isFinite(Number(form.value)) || Number(form.value) <= 0) errors.value = 'Enter an ETH value greater than 0.'
     if (!form.deadline) errors.deadline = 'Choose a proof deadline.'
-    else if (new Date(form.deadline).getTime() <= Date.now()) errors.deadline = 'The deadline must be in the future.'
+    else if (!Number.isFinite(new Date(form.deadline).getTime()) || new Date(form.deadline).getTime() <= Date.now()) errors.deadline = 'Choose a valid deadline in the future.'
     descriptions.forEach((description, index) => { if (!description) errors[`description-${index}`] = 'Enter a milestone description.' })
     percentages.forEach((percentage, index) => { if (!Number.isInteger(percentage) || percentage <= 0) errors[`percentage-${index}`] = 'The release must be greater than 0%.' })
     if (percentages.reduce((sum, percentage) => sum + (Number.isFinite(percentage) ? percentage : 0), 0) !== 100) errors[`percentage-${milestones.length - 1}`] = 'Milestone releases must total exactly 100%.'
     setFieldErrors(errors)
-    if (Object.keys(errors).length || Object.keys(shipmentValidation).length) return
+    if (Object.keys(errors).length || Object.keys(shipmentValidation).length) {
+      setValidationMessage('Please complete or correct the highlighted fields before creating the agreement.')
+      return
+    }
     const created = await shipmentWorkflow.submit(shipment, tx.run, () => escrowActions.create(form.carrier, totalValue, Math.floor(new Date(form.deadline).getTime() / 1000), descriptions, percentages))
     if (created) setShowFundingReminder(true)
   }
@@ -213,8 +247,7 @@ export function ShipperCreateAgreement() {
     return next
   })
   return <Page title="Create Agreement" subtitle="Create escrow terms for a new shipping agreement.">
-    {shipmentWorkflow.message && <p role="status" className="form-message">{shipmentWorkflow.message}</p>}
-    {shipmentWorkflow.pending && <button type="button" className="btn btn--secondary" disabled={shipmentWorkflow.busy} onClick={async () => { if (await shipmentWorkflow.retry()) { setShowFundingReminder(true); void data.refresh() } }}>Retry saving shipment</button>}
+    {!isConnected && <ReminderBanner title="MetaMask connection required">Connect your registered Sepolia wallet to create an agreement.</ReminderBanner>}
     <div className="function-grid"><form className="card contract-form" onSubmit={create} noValidate><fieldset className="shipment-creation-fields" disabled={shipmentWorkflow.busy || Boolean(shipmentWorkflow.pending) || shipmentWorkflow.complete}>
       <ShipmentDetailsForm value={shipment} errors={shipmentErrors} onChange={(name, value) => { setShipment((current) => ({ ...current, [name]: value })); setShipmentErrors((current) => ({ ...current, [name]: '' })) }} />
       <div className="shipment-section-heading"><span>02</span><div><h2>Escrow terms and carrier selection</h2><p>Choose the verified carrier and set the on-chain agreement terms.</p></div></div>
@@ -222,10 +255,13 @@ export function ShipperCreateAgreement() {
       <div className="form-row"><label>Company name<input readOnly value={selectedCarrier?.companyName || ''} placeholder="Select a carrier" /></label><label>Company email<input readOnly value={selectedCarrier?.email || ''} placeholder="Select a carrier" /></label></div>
       <div className="form-row"><label>Total value (ETH)<input aria-invalid={Boolean(fieldErrors.value)} type="number" min="0" step="any" value={form.value} onChange={(e) => { setForm({ ...form, value: e.target.value }); setFieldErrors((current) => ({ ...current, value: '' })) }} />{fieldErrors.value && <span className="field-error">{fieldErrors.value}</span>}</label><label>Proof deadline<input aria-invalid={Boolean(fieldErrors.deadline)} className="deadline-input" type="datetime-local" min={minimumDeadline} value={form.deadline} onClick={(event) => event.currentTarget.showPicker?.()} onChange={(e) => { setForm({ ...form, deadline: e.target.value }); setFieldErrors((current) => ({ ...current, deadline: '' })) }} />{fieldErrors.deadline && <span className="field-error">{fieldErrors.deadline}</span>}</label></div>
       <section className="milestone-editor"><div className="milestone-editor__heading"><div><h3>03. Payment milestones</h3><p>Change any percentage except the last one; the final milestone automatically balances the total to 100%.</p></div><button className="btn btn--secondary btn--compact" type="button" onClick={addMilestone}>Add milestone</button></div><div className="milestone-editor__list">{milestones.map((milestone, index) => <div className="milestone-item" key={index}><div className="milestone-row"><span className="milestone-row__number">{index + 1}</span><label>Description<input aria-invalid={Boolean(fieldErrors[`description-${index}`])} value={milestone.description} onChange={(event) => updateMilestone(index, 'description', event.target.value)} placeholder="e.g. Pickup confirmed" /></label><label>{index === milestones.length - 1 ? 'Release % (auto)' : 'Release %'}<input aria-invalid={Boolean(fieldErrors[`percentage-${index}`])} readOnly={index === milestones.length - 1} type="number" min="0" max="100" value={milestone.percentage} onChange={(event) => updateMilestone(index, 'percentage', event.target.value)} /></label><button className="btn btn--secondary btn--compact" type="button" disabled={milestones.length === 1} onClick={() => removeMilestone(index)}>Remove</button></div>{(fieldErrors[`description-${index}`] || fieldErrors[`percentage-${index}`]) && <div className="milestone-errors" role="alert"><span>{fieldErrors[`description-${index}`]}</span><span>{fieldErrors[`percentage-${index}`]}</span></div>}</div>)}</div></section>
-      <button className="btn btn--primary" disabled={!data.isConnected || tx.busy || shipmentWorkflow.busy || Boolean(shipmentWorkflow.pending) || shipmentWorkflow.complete}>Create on Sepolia</button>{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
-    </fieldset></form></div>
-    <PageState loading={data.loading} error={data.error} connected={data.isConnected} />
-    {showFundingReminder && <Popup variant="success" title="Agreement created—fund it next" message="The agreement is recorded but remains pending until you fund the escrow. Go to Funding & refunds now to activate it." actionLabel="Go to funding" onAction={() => { setShowFundingReminder(false); navigate('/shipper/funds') }} onClose={() => setShowFundingReminder(false)} />}
+      <button className="btn btn--primary" disabled={!isConnected || tx.busy || shipmentWorkflow.busy || Boolean(shipmentWorkflow.pending) || shipmentWorkflow.complete}>Create on Sepolia</button>{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : tx.busy ? '' : 'form-message--success'}`}>{tx.message}</p>}
+    </fieldset>
+    <FormFeedback error={validationMessage || (!shipmentWorkflow.complete && !shipmentWorkflow.pending ? shipmentWorkflow.message : '')} />
+    {shipmentWorkflow.pending && <FormFeedback message={shipmentWorkflow.message} warning />}
+    {shipmentWorkflow.pending && <button type="button" className="btn btn--secondary" disabled={shipmentWorkflow.busy} onClick={async () => { if (await shipmentWorkflow.retry()) { setShowFundingReminder(true) } }}>Retry saving shipment</button>}
+    </form></div>
+    {showFundingReminder && <Popup variant="success" title="Agreement created—fund it next" message="The agreement is recorded but remains pending until you fund the escrow. Go to Funding & refunds now to activate it." actionLabel="Go to funding" onAction={() => { finishCreation(); navigate('/shipper/funds') }} onClose={finishCreation} />}
   </Page>
 }
 
@@ -250,15 +286,15 @@ export function ShipperReview() {
   const act = async (key, action) => { if (await tx.run(key, action)) setSelected(null) }
   return <Page title="Review proofs" subtitle="Select a submitted milestone to inspect its proof and make a decision."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!items.length} />
     {items.length > 0 && <div className="card table-card workflow-table"><table className="ship-table"><thead><tr><th>Agreement</th><th>Milestone</th><th>Release</th><th>Submitted</th><th>Deadline</th><th /></tr></thead><tbody>{items.map(({ a, m }) => <tr key={`${a.id}-${m.index}`}><td className="ship-table__id">#{a.id}</td><td>{m.description}</td><td>{m.percent}%</td><td>{dateTime(m.proofSubmittedAt)}</td><td>{dateTime(m.proofSubmittedAt + 259200)}</td><td><button className="btn btn--compact btn--secondary" type="button" onClick={() => { tx.clearMessage(); setProofVerification({ status: 'idle', storageHash: '', blockchainHash: '' }); setSelected({ a, m }) }}>View proof</button></td></tr>)}</tbody></table></div>}
-    {tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
-    {selected && <WorkflowModal title={`Agreement #${selected.a.id} · Milestone ${selected.m.index + 1}`} onClose={() => { setSelected(null); setProofVerification({ status: 'idle', storageHash: '', blockchainHash: '' }) }}><div className="workflow-detail"><span className="card-kicker">{selected.m.percent}% release</span><h3>{selected.m.description}</h3><p>Submitted: {dateTime(selected.m.proofSubmittedAt)}</p><p>Review deadline: {dateTime(selected.m.proofSubmittedAt + 259200)}</p><ProofImage proofHash={selected.m.proofHash} agreementId={selected.a.id} milestoneIndex={selected.m.index} onVerificationChange={setProofVerification} /><ProofIntegrity verification={proofVerification} /><div className="button-row workflow-actions"><button className="btn btn--primary" disabled={tx.busy || proofVerification.status !== 'match'} onClick={() => act(`v-${selected.a.id}`, () => escrowActions.verify(selected.a.id, selected.m.index))}>Verify & release</button><button className="btn btn--secondary" disabled={tx.busy || !['match', 'mismatch'].includes(proofVerification.status)} onClick={() => act(`r-${selected.a.id}`, () => escrowActions.reject(selected.a.id, selected.m.index))}>Reject proof</button></div>{['idle', 'checking'].includes(proofVerification.status) && !tx.message && <p className="muted-copy">The decision buttons will be available after the image hash is calculated and compared with Sepolia.</p>}{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}</div></WorkflowModal>}
+    {tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : tx.busy ? '' : 'form-message--success'}`}>{tx.message}</p>}
+    {selected && <WorkflowModal title={`Agreement #${selected.a.id} · Milestone ${selected.m.index + 1}`} onClose={() => { setSelected(null); setProofVerification({ status: 'idle', storageHash: '', blockchainHash: '' }) }}><div className="workflow-detail"><span className="card-kicker">{selected.m.percent}% release</span><h3>{selected.m.description}</h3><p>Submitted: {dateTime(selected.m.proofSubmittedAt)}</p><p>Review deadline: {dateTime(selected.m.proofSubmittedAt + 259200)}</p><ProofImage proofHash={selected.m.proofHash} agreementId={selected.a.id} milestoneIndex={selected.m.index} onVerificationChange={setProofVerification} /><ProofIntegrity verification={proofVerification} /><div className="button-row workflow-actions"><button className="btn btn--primary" disabled={tx.busy || proofVerification.status !== 'match'} onClick={() => act(`v-${selected.a.id}`, () => escrowActions.verify(selected.a.id, selected.m.index))}>Verify & release</button><button className="btn btn--secondary" disabled={tx.busy || !['match', 'mismatch'].includes(proofVerification.status)} onClick={() => act(`r-${selected.a.id}`, () => escrowActions.reject(selected.a.id, selected.m.index))}>Reject proof</button></div>{['idle', 'checking'].includes(proofVerification.status) && !tx.message && <p className="muted-copy">The decision buttons will be available after the image hash is calculated and compared with Sepolia.</p>}{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : tx.busy ? '' : 'form-message--success'}`}>{tx.message}</p>}</div></WorkflowModal>}
   </Page>
 }
 
 export function ShipperFunds() {
   const data = useAgreements('shipper'); const tx = useTransaction(data.refresh); const [now] = useState(() => Date.now() / 1000)
   return <Page title="Funding & refunds" subtitle="Fund pending agreements or recover unreleased escrow after the deadline."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!data.agreements.length} />
-    {data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="shipper" actions={(a) => a.status === 0 ? <button className="btn btn--compact btn--primary" disabled={tx.busy} onClick={() => tx.run(`f-${a.id}`, () => escrowActions.fund(a.id, a.totalValue))}>Fund {a.totalEth} ETH</button> : (a.deadline < now && a.pendingProofCount === 0 && a.fundedAmount > a.releasedAmount && a.status < 3) ? <button className="btn btn--compact btn--secondary" disabled={tx.busy} onClick={() => tx.run(`refund-${a.id}`, () => escrowActions.refund(a.id))}>Refund remainder</button> : <span className="muted-copy">No action available</span>} />}{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
+    {data.agreements.length > 0 && <PaginatedAgreementTable agreements={data.agreements.filter((a) => a.status < 3)} role="shipper" actions={(a) => a.status === 0 ? <button className="btn btn--compact btn--primary" disabled={tx.busy} onClick={() => tx.run(`f-${a.id}`, () => escrowActions.fund(a.id, a.totalValue))}>Fund {a.totalEth} ETH</button> : (a.deadline < now && a.pendingProofCount === 0 && a.fundedAmount > a.releasedAmount && a.status < 3) ? <button className="btn btn--compact btn--secondary" disabled={tx.busy} onClick={() => tx.run(`refund-${a.id}`, () => escrowActions.refund(a.id))}>Refund remainder</button> : <span className="muted-copy">No action available</span>} />}{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : tx.busy ? '' : 'form-message--success'}`}>{tx.message}</p>}
   </Page>
 }
 
@@ -317,8 +353,8 @@ export function CarrierProofs() {
   }
   return <Page title="Submit proof" subtitle="Select a milestone to review agreement details and submit its proof image."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!items.length} />
     {items.length > 0 && <div className="card table-card workflow-table"><table className="ship-table"><thead><tr><th>Agreement</th><th>Milestone</th><th>Release</th><th>Deadline</th><th>Status</th><th /></tr></thead><tbody>{items.map(({ a, m }) => <tr key={`${a.id}-${m.index}`}><td className="ship-table__id">#{a.id}</td><td>{m.description}</td><td>{m.percent}%</td><td>{dateTime(a.deadline)}</td><td>{m.rejected ? 'Resubmission required' : 'Ready for proof'}</td><td><button className="btn btn--compact btn--primary" type="button" onClick={() => { tx.clearMessage(); setSelected({ a, m }) }}>Submit proof</button></td></tr>)}</tbody></table></div>}
-    {tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
-    {selected && <WorkflowModal title={`Agreement #${selected.a.id} · Milestone ${selected.m.index + 1}`} onClose={closeProofModal}><div className="workflow-detail"><span className="card-kicker">{selected.m.rejected ? 'Proof resubmission' : 'Proof required'}</span><h3>{selected.m.description}</h3><p>{selected.m.percent}% of {selected.a.totalEth} ETH</p><p>Submission deadline: {dateTime(selected.a.deadline)}</p><label className="workflow-file">Proof image<input required accept="image/jpeg,image/png,image/webp" type="file" onChange={(event) => { const file = event.target.files?.[0]; if (file) { if (selectedProof?.preview) URL.revokeObjectURL(selectedProof.preview); setProofs({ ...proofs, [selectedKey]: { file, preview: URL.createObjectURL(file) } }) } }} /></label>{selectedProof && <><img className="proof-image" src={selectedProof.preview} alt="Proof selected for submission" /><p className="muted-copy">{selectedProof.file.name}</p></>}{proofHashes[selectedKey] && <p className="muted-copy">SHA-256: {proofHashes[selectedKey]}</p>}<button className="btn btn--primary" disabled={tx.busy || !selectedProof} onClick={async () => { const success = await tx.run(`p-${selected.a.id}`, async () => { const uploaded = await uploadProofImage(selectedProof.file, selected.a.id, selected.m.index); setProofHashes({ ...proofHashes, [selectedKey]: uploaded.proofHash }); return escrowActions.submitProof(selected.a.id, selected.m.index, uploaded.proofHash) }); if (success) closeProofModal() }}>Hash image & submit proof</button>{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}</div></WorkflowModal>}
+    {tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : tx.busy ? '' : 'form-message--success'}`}>{tx.message}</p>}
+    {selected && <WorkflowModal title={`Agreement #${selected.a.id} · Milestone ${selected.m.index + 1}`} onClose={closeProofModal}><div className="workflow-detail"><span className="card-kicker">{selected.m.rejected ? 'Proof resubmission' : 'Proof required'}</span><h3>{selected.m.description}</h3><p>{selected.m.percent}% of {selected.a.totalEth} ETH</p><p>Submission deadline: {dateTime(selected.a.deadline)}</p><label className="workflow-file">Proof image<input required accept="image/jpeg,image/png,image/webp" type="file" onChange={(event) => { const file = event.target.files?.[0]; if (file) { if (selectedProof?.preview) URL.revokeObjectURL(selectedProof.preview); setProofs({ ...proofs, [selectedKey]: { file, preview: URL.createObjectURL(file) } }) } }} /></label>{selectedProof && <><img className="proof-image" src={selectedProof.preview} alt="Proof selected for submission" /><p className="muted-copy">{selectedProof.file.name}</p></>}{proofHashes[selectedKey] && <p className="muted-copy">SHA-256: {proofHashes[selectedKey]}</p>}<button className="btn btn--primary" disabled={tx.busy || !selectedProof} onClick={async () => { const success = await tx.run(`p-${selected.a.id}`, async () => { const uploaded = await uploadProofImage(selectedProof.file, selected.a.id, selected.m.index); setProofHashes({ ...proofHashes, [selectedKey]: uploaded.proofHash }); return escrowActions.submitProof(selected.a.id, selected.m.index, uploaded.proofHash) }); if (success) closeProofModal() }}>Hash image & submit proof</button>{tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : tx.busy ? '' : 'form-message--success'}`}>{tx.message}</p>}</div></WorkflowModal>}
   </Page>
 }
 
@@ -327,7 +363,7 @@ export function CarrierClaims() {
   const items = data.agreements.flatMap((a) => a.milestones.filter((m) => m.index === a.nextVerificationIndex && m.proofSubmittedAt && !m.verified && !m.rejected && now > m.proofSubmittedAt + 259200).map((m) => ({ a, m })))
   return <Page title="Timeout claims" subtitle="Claim milestone payment when the three-day shipper review period has elapsed."><PageState loading={data.loading} error={data.error} connected={data.isConnected} empty={!items.length} />
     {items.length > 0 && <div className="card table-card workflow-table"><table className="ship-table"><thead><tr><th>Agreement</th><th>Milestone</th><th>Release</th><th>Review ended</th><th>Status</th><th>Action</th></tr></thead><tbody>{items.map(({ a, m }) => <tr key={`${a.id}-${m.index}`}><td className="ship-table__id">#{a.id}</td><td>{m.description}</td><td>{m.percent}%</td><td>{dateTime(m.proofSubmittedAt + 259200)}</td><td><span className="status-pill status-pill--pending">Claim available</span></td><td><button className="btn btn--compact btn--primary" disabled={tx.busy} onClick={() => tx.run(`c-${a.id}-${m.index}`, () => escrowActions.claim(a.id, m.index))}>Claim payment</button></td></tr>)}</tbody></table></div>}
-    {tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : ''}`}>{tx.message}</p>}
+    {tx.message && <p className={`form-message ${tx.error ? 'form-message--error' : tx.busy ? '' : 'form-message--success'}`}>{tx.message}</p>}
   </Page>
 }
 

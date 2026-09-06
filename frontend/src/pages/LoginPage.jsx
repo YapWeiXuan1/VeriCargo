@@ -97,7 +97,7 @@ function LoginPage() {
               />
               <span>Remember me</span>
             </label>
-            <Link to="/forgot-password">Forgot password?</Link>
+            {/* <Link to="/forgot-password">Forgot password?</Link> */}
           </div>
 
           <button className="auth-button auth-button--primary" type="submit" disabled={loading}>

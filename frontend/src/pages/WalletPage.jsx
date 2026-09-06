@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import AppLayout from '../components/AppLayout'
+import ReminderBanner from '../components/ReminderBanner'
 import MetaMaskConnectButton from '../components/metaMaskConnectButton'
 import useWallet from '../hooks/useWallet'
 import useAgreements from '../hooks/useAgreements'
@@ -40,10 +41,7 @@ export default function WalletPage() {
 
   return <AppLayout title="Wallet" subtitle="Your Sepolia balance and VeriCargo payment activity.">
     <div className="profile-stack wallet-page">
-      <div className="wallet-account-reminder" role="note">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 018 0v3M12 14v3" /></svg>
-        <div><strong>One MetaMask account only</strong><span>{linkedAddress ? 'This VeriCargo account is permanently linked to the wallet shown below and cannot be changed to another MetaMask address.' : 'Choose carefully. After verification, this VeriCargo account will be permanently linked to that MetaMask address and cannot be changed.'}</span></div>
-      </div>
+      <ReminderBanner title="One MetaMask account only">{linkedAddress ? 'This VeriCargo account is permanently linked to your registered wallet and cannot be changed to another MetaMask address.' : 'Choose carefully. After verification, this VeriCargo account will be permanently linked to that MetaMask address and cannot be changed.'}</ReminderBanner>
       <section className={`wallet-card ${isConnected ? 'wallet-card--connected' : 'wallet-card--disconnected'}`}>
         <div>
           <span className="profile-card__eyebrow">Sepolia wallet</span>
