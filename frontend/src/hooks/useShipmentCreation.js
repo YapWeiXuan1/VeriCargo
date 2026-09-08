@@ -42,5 +42,13 @@ export default function useShipmentCreation() {
     try { return await save(pending) }
     finally { guard.current = false; setBusy(false) }
   }
-  return { pending, busy, message, complete, submit, retry }
+  const reset = () => {
+    if (guard.current || pending) return false
+    setPending(null)
+    setBusy(false)
+    setMessage('')
+    setComplete(false)
+    return true
+  }
+  return { pending, busy, message, complete, submit, retry, reset }
 }
